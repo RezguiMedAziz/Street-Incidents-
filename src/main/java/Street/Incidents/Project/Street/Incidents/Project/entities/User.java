@@ -3,6 +3,12 @@ package Street.Incidents.Project.Street.Incidents.Project.entities;
 import Street.Incidents.Project.Street.Incidents.Project.entities.Enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+
+import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 
 @Entity
@@ -11,7 +17,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class User {
+public class User implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,7 +36,17 @@ public class User {
     private Role role;
 
     @Builder.Default
-    private boolean actif = true;
+    private boolean actif = false; // ✅ Change to false - user must verify email first
+
+    @Column(name = "verification_code", length = 64)
+    private String verificationCode;
+
+    @Column(name = "verification_code_expiry")
+    private LocalDateTime verificationCodeExpiry;
+
+    @Builder.Default
+    @Column(name = "email_verified")
+    private boolean emailVerified = false;
 
     @OneToMany(mappedBy = "declarant")
     private List<Incident> incidentsDeclarés;
@@ -40,4 +56,39 @@ public class User {
 
     @OneToMany(mappedBy = "utilisateur")
     private List<Notification> notifications;
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+    }
+
+    @Override
+    public String getPassword() {
+        return motDePasse;
+    }
+
+    @Override
+    public String getUsername() {
+        return email;
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return actif;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return actif;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return actif;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return actif && emailVerified; // ✅ User must be both active AND email verified
+    }
 }
