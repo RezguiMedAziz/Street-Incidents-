@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Your Email</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #007bff;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .content {
+            background-color: #f8f9fa;
+            padding: 30px;
+            border-radius: 0 0 5px 5px;
+        }
+        .button {
+            display: inline-block;
+            background-color: #28a745;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 12px;
+            color: #666;
+        }
+        .code {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 18px;
+            text-align: center;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h1>Street Incidents</h1>
+    <h2>Verify Your Email Address</h2>
+</div>
+
+<div class="content">
+    <p>Hello <span th:text="${name}">User</span>,</p>
+
+    <p>Thank you for registering with Street Incidents! To complete your registration and start using your account, please verify your email address by clicking the button below:</p>
+
+    <div style="text-align: center;">
+        <a th:href="${verificationUrl}" class="button">Verify Email Address</a>
+    </div>
+
+    <p>Or copy and paste this verification code on the verification page:</p>
+
+    <div class="code" th:text="${verificationCode}"></div>
+
+    <p><strong>The verification link will expire in 24 hours.</strong></p>
+
+    <p>If you did not create an account with Street Incidents, please ignore this email.</p>
+
+    <p>Best regards,<br>
+        The Street Incidents Team</p>
+</div>
+
+<div class="footer">
+    <p>This email was sent by Street Incidents Platform.<br>
+        If you have any questions, please contact our support team.</p>
+</div>
+</body>
+</html>
