@@ -474,8 +474,44 @@
                 </form>
             </div>
 
-            <!-- Additional Settings Card -->
+            <!-- Change Password Card -->
+            <div class="profile-card">
+                <h3><i class="fas fa-key me-2"></i>Change Password</h3>
+                <form th:action="@{/change-password-request}" method="post" th:object="${changePasswordRequest}" id="changePasswordForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="currentPassword">Current Password</label>
+                                <input type="password" class="form-control" id="currentPassword"
+                                       th:field="*{currentPassword}"
+                                       placeholder="Enter your current password" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="newPassword">New Password</label>
+                                <input type="password" class="form-control" id="newPassword"
+                                       th:field="*{newPassword}"
+                                       placeholder="Enter new password" required>
+                            </div>
+                        </div>
+                    </div>
 
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm New Password</label>
+                        <input type="password" class="form-control" id="confirmPassword"
+                               th:field="*{confirmPassword}"
+                               placeholder="Confirm new password" required>
+                        <small class="text-muted">You will receive a confirmation email to verify this change.</small>
+                    </div>
+
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-key me-2"></i>Change Password
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </main>
 </div>

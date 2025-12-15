@@ -1,9 +1,6 @@
 package Street.Incidents.Project.Street.Incidents.Project.services;
 
-import Street.Incidents.Project.Street.Incidents.Project.DAOs.AuthResponse;
-import Street.Incidents.Project.Street.Incidents.Project.DAOs.LoginRequest;
-import Street.Incidents.Project.Street.Incidents.Project.DAOs.ProfileUpdateRequest;
-import Street.Incidents.Project.Street.Incidents.Project.DAOs.RegisterRequest;
+import Street.Incidents.Project.Street.Incidents.Project.DAOs.*;
 import Street.Incidents.Project.Street.Incidents.Project.entities.User;
 import Street.Incidents.Project.Street.Incidents.Project.repositories.UserRepository;
 import Street.Incidents.Project.Street.Incidents.Project.security.JwtUtil;
@@ -238,5 +235,177 @@ public class UserService {
         }
 
         userRepository.save(user);
+    }
+
+    // ========================================
+    // FORGET PASSWORD METHODS
+    // ========================================
+
+    @Transactional
+    public boolean initiatePasswordReset(String email) {
+        log.info("Initiating password reset for email: {}", email);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> {
+                    log.error("User not found for password reset: {}", email);
+                    return new RuntimeException("If this email exists, a reset link will be sent");
+                });
+
+        // Generate reset token
+        String resetToken = UUID.randomUUID().toString();
+        LocalDateTime tokenExpiry = LocalDateTime.now().plusHours(2); // Token valid for 2 hours
+
+        user.setPasswordResetToken(resetToken);
+        user.setPasswordResetTokenExpiry(tokenExpiry);
+        userRepository.save(user);
+
+        // Send reset email
+        try {
+            String fullName = user.getPrenom() + " " + user.getNom();
+            emailService.sendPasswordResetEmail(email, fullName, resetToken);
+            log.info("Password reset email sent to: {}", email);
+            return true;
+        } catch (Exception e) {
+            log.error("Failed to send password reset email: {}", e.getMessage());
+            throw new RuntimeException("Failed to send reset email");
+        }
+    }
+
+    @Transactional
+    public boolean validateResetToken(String token) {
+        log.info("Validating reset token: {}", token);
+
+        User user = userRepository.findByPasswordResetToken(token)
+                .orElseThrow(() -> {
+                    log.error("Invalid reset token: {}", token);
+                    return new RuntimeException("Invalid or expired reset token");
+                });
+
+        // Check if token is expired
+        if (user.getPasswordResetTokenExpiry().isBefore(LocalDateTime.now())) {
+            log.error("Reset token expired for user: {}", user.getEmail());
+            user.setPasswordResetToken(null);
+            user.setPasswordResetTokenExpiry(null);
+            userRepository.save(user);
+            throw new RuntimeException("Reset token has expired");
+        }
+
+        return true;
+    }
+
+    @Transactional
+    public boolean resetPassword(ResetPasswordRequest request) {
+        log.info("Resetting password with token: {}", request.getToken());
+
+        User user = userRepository.findByPasswordResetToken(request.getToken())
+                .orElseThrow(() -> {
+                    log.error("Invalid reset token: {}", request.getToken());
+                    return new RuntimeException("Invalid or expired reset token");
+                });
+
+        // Check if token is expired
+        if (user.getPasswordResetTokenExpiry().isBefore(LocalDateTime.now())) {
+            log.error("Reset token expired for user: {}", user.getEmail());
+            throw new RuntimeException("Reset token has expired");
+        }
+
+        // Update password
+        user.setMotDePasse(passwordEncoder.encode(request.getNewPassword()));
+        user.setPasswordResetToken(null);
+        user.setPasswordResetTokenExpiry(null);
+        userRepository.save(user);
+
+        log.info("Password reset successful for user: {}", user.getEmail());
+
+        // Send confirmation email
+        try {
+            String fullName = user.getPrenom() + " " + user.getNom();
+            emailService.sendPasswordChangeConfirmationEmail(user.getEmail(), fullName);
+        } catch (Exception e) {
+            log.error("Failed to send password change confirmation email: {}", e.getMessage());
+        }
+
+        return true;
+    }
+
+    // ========================================
+    // CHANGE PASSWORD METHODS
+    // ========================================
+
+    @Transactional
+    public boolean initiatePasswordChange(String email, ChangePasswordRequest request) {
+        log.info("Initiating password change for email: {}", email);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> {
+                    log.error("User not found: {}", email);
+                    return new RuntimeException("User not found");
+                });
+
+        // Verify current password
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getMotDePasse())) {
+            log.error("Current password incorrect for user: {}", email);
+            throw new RuntimeException("Current password is incorrect");
+        }
+
+        // Generate change token
+        String changeToken = UUID.randomUUID().toString();
+        LocalDateTime tokenExpiry = LocalDateTime.now().plusHours(2);
+
+        user.setPasswordChangeToken(changeToken);
+        user.setPasswordChangeTokenExpiry(tokenExpiry);
+        user.setTemporaryNewPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        // Send confirmation email
+        try {
+            String fullName = user.getPrenom() + " " + user.getNom();
+            emailService.sendPasswordChangeVerificationEmail(email, fullName, changeToken);
+            log.info("Password change verification email sent to: {}", email);
+            return true;
+        } catch (Exception e) {
+            log.error("Failed to send password change verification email: {}", e.getMessage());
+            throw new RuntimeException("Failed to send verification email");
+        }
+    }
+
+    @Transactional
+    public boolean confirmPasswordChange(String token) {
+        log.info("Confirming password change with token: {}", token);
+
+        User user = userRepository.findByPasswordChangeToken(token)
+                .orElseThrow(() -> {
+                    log.error("Invalid password change token: {}", token);
+                    return new RuntimeException("Invalid or expired token");
+                });
+
+        // Check if token is expired
+        if (user.getPasswordChangeTokenExpiry().isBefore(LocalDateTime.now())) {
+            log.error("Password change token expired for user: {}", user.getEmail());
+            user.setPasswordChangeToken(null);
+            user.setPasswordChangeTokenExpiry(null);
+            user.setTemporaryNewPassword(null);
+            userRepository.save(user);
+            throw new RuntimeException("Verification token has expired");
+        }
+
+        // Update password with the temporary one
+        user.setMotDePasse(user.getTemporaryNewPassword());
+        user.setPasswordChangeToken(null);
+        user.setPasswordChangeTokenExpiry(null);
+        user.setTemporaryNewPassword(null);
+        userRepository.save(user);
+
+        log.info("Password change confirmed successfully for user: {}", user.getEmail());
+
+        // Send confirmation email
+        try {
+            String fullName = user.getPrenom() + " " + user.getNom();
+            emailService.sendPasswordChangeCompletedEmail(user.getEmail(), fullName);
+        } catch (Exception e) {
+            log.error("Failed to send password change completion email: {}", e.getMessage());
+        }
+
+        return true;
     }
 }

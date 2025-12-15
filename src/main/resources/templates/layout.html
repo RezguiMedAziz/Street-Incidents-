@@ -261,8 +261,13 @@
         <i class="fas fa-bars"></i>
     </button>
 
-    <!-- Include Sidebar -->
-    <div th:replace="~{commun/side :: sidebar}"></div>
+    <!-- Include Sidebar with session attributes -->
+    <div th:replace="~{commun/side :: sidebar(
+        userRole=${session.userRole},
+        userName=${session.userName},
+        userEmail=${session.userEmail},
+        activePage=${activePage}
+    )}"></div>
 
     <!-- Main Content -->
     <main class="main-content">
