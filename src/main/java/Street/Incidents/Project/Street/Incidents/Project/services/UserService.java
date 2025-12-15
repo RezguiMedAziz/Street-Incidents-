@@ -2,6 +2,7 @@ package Street.Incidents.Project.Street.Incidents.Project.services;
 
 import Street.Incidents.Project.Street.Incidents.Project.DAOs.AuthResponse;
 import Street.Incidents.Project.Street.Incidents.Project.DAOs.LoginRequest;
+import Street.Incidents.Project.Street.Incidents.Project.DAOs.ProfileUpdateRequest;
 import Street.Incidents.Project.Street.Incidents.Project.DAOs.RegisterRequest;
 import Street.Incidents.Project.Street.Incidents.Project.entities.User;
 import Street.Incidents.Project.Street.Incidents.Project.repositories.UserRepository;
@@ -206,5 +207,36 @@ public class UserService {
             log.error("Unexpected error during login for {}: {}", request.getEmail(), e.getMessage());
             throw new RuntimeException("Login failed: " + e.getMessage());
         }
+    }
+
+    //  User update and consult
+
+    public User getUserByEmail(String email) {
+        // Implementation to get user by email
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return (user);
+    }
+
+    public void updateUserProfile(String email, ProfileUpdateRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Update user fields
+        if (request.getNom() != null && !request.getNom().isEmpty()) {
+            user.setNom(request.getNom());
+        }
+        if (request.getPrenom() != null && !request.getPrenom().isEmpty()) {
+            user.setPrenom(request.getPrenom());
+        }
+        if (request.getEmail() != null && !request.getEmail().isEmpty() && !request.getEmail().equals(email)) {
+            // Check if new email is not taken
+            if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+                throw new RuntimeException("Email already in use");
+            }
+            user.setEmail(request.getEmail());
+        }
+
+        userRepository.save(user);
     }
 }

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Sidebar Fragment -->
+<nav th:fragment="sidebar" class="sidebar">
+    <div class="sidebar-header">
+        <img th:src="@{/logo.png}"
+             alt="Street Incidents Logo"
+             width="100"
+             height="100"
+             style="display: block; margin: 0 auto;">
+        <h4 class="app-name">Street Incidents</h4>
+        <div class="app-tagline">Safety & Reporting System</div>
+    </div>
+
+    <div class="sidebar-menu">
+        <ul>
+            <li>
+                <a th:href="@{/dashboard}"
+                   th:class="${activePage == 'dashboard' ? 'active' : ''}">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li>
+                <a th:href="@{/incidents}"
+                   th:class="${activePage == 'incidents' ? 'active' : ''}">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span>Incidents</span>
+                </a>
+            </li>
+            <li>
+                <a th:href="@{/notifications}"
+                   th:class="${activePage == 'notifications' ? 'active' : ''}">
+                    <i class="fas fa-bell"></i>
+                    <span>Notifications</span>
+                </a>
+            </li>
+            <li>
+                <a th:href="@{/profile}"
+                   th:class="${activePage == 'profile' ? 'active' : ''}">
+                    <i class="fas fa-user"></i>
+                    <span>Profile</span>
+                </a>
+            </li>
+            <li>
+                <a th:href="@{/logout}">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+</nav>
+</body>
+</html>

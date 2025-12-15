@@ -1,9 +1,6 @@
 package Street.Incidents.Project.Street.Incidents.Project.controllers;
 
-import Street.Incidents.Project.Street.Incidents.Project.DAOs.LoginRequest;
-import Street.Incidents.Project.Street.Incidents.Project.DAOs.RegisterRequest;
-import Street.Incidents.Project.Street.Incidents.Project.DAOs.ResendVerificationRequest;
-import Street.Incidents.Project.Street.Incidents.Project.DAOs.VerificationRequest;
+import Street.Incidents.Project.Street.Incidents.Project.DAOs.*;
 import Street.Incidents.Project.Street.Incidents.Project.services.UserService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,7 +21,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Enumeration;
@@ -35,6 +31,10 @@ import java.util.Enumeration;
 public class PageController {
 
     private final UserService userService;
+
+    // ========================================
+    // HOME & DASHBOARD ROUTES
+    // ========================================
 
     @GetMapping("/")
     public String home() {
@@ -51,78 +51,56 @@ public class PageController {
         HttpSession session = request.getSession(false);
 
         log.info("=== DASHBOARD ACCESS ATTEMPT ===");
-        log.info("Request URL: {}", request.getRequestURL());
-        log.info("Session exists: {}", session != null);
-
-        if (session != null) {
-            log.info("Session ID: {}", session.getId());
-            log.info("Session creation time: {}", new Date(session.getCreationTime()));
-
-            log.info("=== SESSION ATTRIBUTES ===");
-            Enumeration<String> attrNames = session.getAttributeNames();
-            while (attrNames.hasMoreElements()) {
-                String name = attrNames.nextElement();
-                log.info("  {} = {}", name, session.getAttribute(name));
-            }
-
-            // Check Spring Security context
-            SecurityContext securityContext = SecurityContextHolder.getContext();
-            log.info("SecurityContext Authentication: {}",
-                    securityContext.getAuthentication() != null ?
-                            securityContext.getAuthentication().getName() : "null");
-        }
 
         if (session == null || session.getAttribute("token") == null) {
             log.warn("No session or token found, redirecting to login");
-            return "redirect:/login-page";
+            return "redirect:/login-page?error";
         }
 
-        // Add user info to model from session
         model.addAttribute("userEmail", session.getAttribute("userEmail"));
         model.addAttribute("userName", session.getAttribute("userName"));
         model.addAttribute("userRole", session.getAttribute("userRole"));
 
-        log.info("Dashboard access granted for: {}", session.getAttribute("userEmail"));
-        return "dashboard";
+        // Add active page for sidebar highlighting
+        model.addAttribute("activePage", "dashboard");
+        model.addAttribute("pageTitle", "Dashboard - Street Incidents");
 
+        // Return the layout with dashboard content
+        return "dashboard";
     }
 
-    @GetMapping("/login-page")
-    public String loginPage(@RequestParam(value = "error", required = false) String error,
-                            @RequestParam(value = "logout", required = false) String logout,
-                            Model model) {
-        log.info("Login page accessed. Error: {}, Logout: {}", error, logout);
+    // ========================================
+    // AUTHENTICATION PAGES (GET)
+    // ========================================
 
-        if (error != null) {
-            model.addAttribute("error", "Invalid email or password!");
-        }
-        if (logout != null) {
-            model.addAttribute("message", "You have been logged out successfully.");
-        }
+    @GetMapping("/login-page")
+    public String loginPage(Model model) {
+        log.info("Login page accessed");
         model.addAttribute("loginRequest", new LoginRequest());
         return "login";
     }
 
-
     @GetMapping("/register-page")
     public String registerPage(Model model) {
+        log.info("Register page accessed");
         model.addAttribute("registerRequest", new RegisterRequest());
         return "register";
     }
 
+    // ========================================
+    // AUTHENTICATION FORMS (POST)
+    // ========================================
 
     @PostMapping("/api/auth/login-form")
     public String loginForm(@ModelAttribute LoginRequest loginRequest,
                             HttpServletRequest request,
-                            HttpServletResponse response,
-                            RedirectAttributes redirectAttributes) {
+                            HttpServletResponse response) {
         log.info("Login attempt for email: {}", loginRequest.getEmail());
 
         try {
             var authResponse = userService.login(loginRequest);
             log.info("Login successful for: {}", loginRequest.getEmail());
 
-            // Get or create session
             HttpSession session = request.getSession();
             log.info("Session created with ID: {}", session.getId());
 
@@ -132,7 +110,7 @@ public class PageController {
             session.setAttribute("userName", authResponse.getNom() + " " + authResponse.getPrenom());
             session.setAttribute("userRole", authResponse.getRole());
 
-            // ✅ CRITICAL: Also store authentication in Spring Security context
+            // Store authentication in Spring Security context
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
                             authResponse.getEmail(),
@@ -143,12 +121,10 @@ public class PageController {
             SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
             securityContext.setAuthentication(authentication);
             SecurityContextHolder.setContext(securityContext);
-
-            // Store Spring Security context in session
             session.setAttribute("SPRING_SECURITY_CONTEXT", securityContext);
 
-            // Set session timeout
-            session.setMaxInactiveInterval(30 * 60); // 30 minutes
+            // Set session timeout (30 minutes)
+            session.setMaxInactiveInterval(30 * 60);
 
             log.info("Session attributes saved for user: {}", authResponse.getEmail());
             log.info("All session attributes:");
@@ -158,40 +134,36 @@ public class PageController {
                 log.info("  - {}: {}", name, session.getAttribute(name));
             }
 
-            return "redirect:/dashboard";
+            return "redirect:/dashboard?loginsuccess";
 
         } catch (Exception e) {
             log.error("Login failed for {}: {}", loginRequest.getEmail(), e.getMessage());
-            redirectAttributes.addFlashAttribute("error", "Invalid email or password!");
-            return "redirect:/login-page?error=true";
+            return "redirect:/login-page?error";
         }
     }
 
     @PostMapping("/api/auth/register-form")
-    public String registerForm(@ModelAttribute RegisterRequest registerRequest,
-                               RedirectAttributes redirectAttributes) {
+    public String registerForm(@ModelAttribute RegisterRequest registerRequest) {
         log.info("Registration attempt for: {}", registerRequest.getEmail());
 
         try {
             var authResponse = userService.register(registerRequest);
             log.info("Registration successful for: {}", registerRequest.getEmail());
-
-            redirectAttributes.addFlashAttribute("success",
-                    "Registration successful! Please login with your credentials.");
-            return "redirect:/login-page";
+            return "redirect:/login-page?registered";
 
         } catch (Exception e) {
             log.error("Registration failed for {}: {}", registerRequest.getEmail(), e.getMessage());
-            redirectAttributes.addFlashAttribute("error",
-                    "Registration failed: " + e.getMessage());
-            return "redirect:/register-page";
+            return "redirect:/register-page?error";
         }
     }
 
+    // ========================================
+    // LOGOUT
+    // ========================================
+
     @GetMapping("/logout")
     public String logout(HttpServletRequest request,
-                         HttpServletResponse response,
-                         RedirectAttributes redirectAttributes) {
+                         HttpServletResponse response) {
 
         HttpSession session = request.getSession(false);
 
@@ -206,7 +178,6 @@ public class PageController {
                 session.removeAttribute(attrName);
             }
 
-            // Invalidate the session
             session.invalidate();
             log.info("Session invalidated for user: {}", userEmail);
         }
@@ -233,61 +204,78 @@ public class PageController {
             }
         }
 
-        redirectAttributes.addFlashAttribute("message", "You have been logged out successfully.");
-        return "redirect:/login-page?logout=true";
+        return "redirect:/login-page?logout";
     }
+
+    // ========================================
+    // EMAIL VERIFICATION PAGES (GET)
+    // ========================================
 
     @GetMapping("/verify-email-page")
     public String verifyEmailPage(@RequestParam(value = "code", required = false) String code,
-                                  @RequestParam(value = "error", required = false) String error,
-                                  @RequestParam(value = "success", required = false) String success,
                                   Model model) {
-        log.info("Accessing verify-email-page. Code: {}, Error: {}, Success: {}",
-                code, error, success);
+        log.info("Accessing verify-email-page. Code: {}", code);
 
-        if (error != null) {
-            model.addAttribute("error", error);
-        }
-        if (success != null) {
-            model.addAttribute("success", success);
-        }
         if (code != null) {
             model.addAttribute("code", code);
         }
 
-        // Create empty LoginRequest for the form
         model.addAttribute("verificationRequest", new VerificationRequest());
-
         return "verify-email";
     }
 
-    // ✅ Verification form submission (POST)
+    @GetMapping("/resend-verification-page")
+    public String resendVerificationPage(Model model) {
+        log.info("Accessing resend-verification-page");
+        model.addAttribute("resendRequest", new ResendVerificationRequest());
+        return "resend-verification";
+    }
+
+    @GetMapping("/verification-success")
+    public String verificationSuccessPage() {
+        return "verification-success";
+    }
+
+    // ========================================
+    // EMAIL VERIFICATION FORMS (POST)
+    // ========================================
+
     @PostMapping("/verify-email-form")
-    public String verifyEmailForm(@ModelAttribute
-                                      VerificationRequest verificationRequest,
-                                  RedirectAttributes redirectAttributes) {
-        log.info("Verification form submitted with code: {}",
-                verificationRequest.getCode());
+    public String verifyEmailForm(@ModelAttribute VerificationRequest verificationRequest) {
+        log.info("Verification form submitted with code: {}", verificationRequest.getCode());
 
         try {
             boolean verified = userService.verifyEmail(verificationRequest.getCode());
             if (verified) {
-                redirectAttributes.addFlashAttribute("success",
-                        "🎉 Email verified successfully! You can now log in.");
-                return "redirect:/login-page";
+                return "redirect:/login-page?verified";
             }
         } catch (Exception e) {
             log.error("Verification failed: {}", e.getMessage());
-            redirectAttributes.addFlashAttribute("error", e.getMessage());
         }
-        return "redirect:/verify-email-page?error=true";
+        return "redirect:/verify-email-page?error";
     }
 
-    // ✅ Email link verification (GET - from email link)
+    @PostMapping("/resend-verification-form")
+    public String resendVerificationForm(@ModelAttribute ResendVerificationRequest resendRequest) {
+        log.info("Resend verification request for email: {}", resendRequest.getEmail());
+
+        try {
+            boolean resent = userService.resendVerificationEmail(resendRequest.getEmail());
+            if (resent) {
+                return "redirect:/login-page?resent";
+            }
+        } catch (Exception e) {
+            log.error("Resend verification failed: {}", e.getMessage());
+        }
+        return "redirect:/resend-verification-page?error";
+    }
+
+    // ========================================
+    // EMAIL LINK VERIFICATION (GET)
+    // ========================================
+
     @GetMapping("/verify-email")
-    public String verifyEmailFromLink(@RequestParam("code") String code,
-                                      Model model,
-                                      RedirectAttributes redirectAttributes) {
+    public String verifyEmailFromLink(@RequestParam("code") String code, Model model) {
         log.info("Email link verification attempt with code: {}", code);
 
         try {
@@ -303,42 +291,82 @@ public class PageController {
         } catch (Exception e) {
             log.error("Email verification failed: {}", e.getMessage());
             model.addAttribute("error", e.getMessage());
-            model.addAttribute("code", code); // Preserve code for retry
+            model.addAttribute("code", code);
             return "verify-email";
         }
     }
+    @GetMapping("/profile")
+    public String profilePage(HttpServletRequest request, Model model) {
+        HttpSession session = request.getSession(false);
 
-    // ✅ Resend verification page
-    @GetMapping("/resend-verification-page")
-    public String resendVerificationPage(Model model) {
-        log.info("Accessing resend-verification-page");
-        model.addAttribute("resendRequest", new ResendVerificationRequest());
-        return "resend-verification";
-    }
+        log.info("=== PROFILE PAGE ACCESS ATTEMPT ===");
 
-    // ✅ Resend verification form submission
-    @PostMapping("/resend-verification-form")
-    public String resendVerificationForm(@ModelAttribute ResendVerificationRequest resendRequest,
-                                         RedirectAttributes redirectAttributes) {
-        log.info("Resend verification request for email: {}", resendRequest.getEmail());
+        if (session == null || session.getAttribute("token") == null) {
+            log.warn("No session or token found, redirecting to login");
+            return "redirect:/login-page?error";
+        }
+
+        String email = (String) session.getAttribute("userEmail");
 
         try {
-            boolean resent = userService.resendVerificationEmail(resendRequest.getEmail());
-            if (resent) {
-                redirectAttributes.addFlashAttribute("success",
-                        "📧 Verification email resent! Please check your inbox.");
-                return "redirect:/login-page";
-            }
+            // Get user details
+            var user = userService.getUserByEmail(email);
+            model.addAttribute("userDetails", user);
+
+            // Add profile update request for form
+            model.addAttribute("profileUpdateRequest", new ProfileUpdateRequest());
         } catch (Exception e) {
-            log.error("Resend verification failed: {}", e.getMessage());
-            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            log.error("Error getting user details: {}", e.getMessage());
+            model.addAttribute("error", "Unable to load profile details");
         }
-        return "redirect:/resend-verification-page?error=true";
+
+        // Set active page for sidebar highlighting
+        model.addAttribute("activePage", "profile");
+        model.addAttribute("userEmail", session.getAttribute("userEmail"));
+        model.addAttribute("userName", session.getAttribute("userName"));
+        model.addAttribute("userRole", session.getAttribute("userRole"));
+        model.addAttribute("pageTitle", "Profile - Street Incidents");
+
+        return "profile";
     }
 
-    // ✅ Verification success page
-    @GetMapping("/verification-success")
-    public String verificationSuccessPage(Model model) {
-        return "verification-success";
+    @PostMapping("/update-profile")
+    public String updateProfile(@ModelAttribute ProfileUpdateRequest profileUpdateRequest,
+                                HttpServletRequest request,
+                                RedirectAttributes redirectAttributes) {
+
+        HttpSession session = request.getSession(false);
+
+        if (session == null || session.getAttribute("token") == null) {
+            return "redirect:/login-page?error";
+        }
+
+        String currentEmail = (String) session.getAttribute("userEmail");
+
+        try {
+            // Update user profile
+            userService.updateUserProfile(currentEmail, profileUpdateRequest);
+
+            // Update session attributes if email changed
+            if (profileUpdateRequest.getEmail() != null &&
+                    !profileUpdateRequest.getEmail().isEmpty() &&
+                    !profileUpdateRequest.getEmail().equals(currentEmail)) {
+
+                session.setAttribute("userEmail", profileUpdateRequest.getEmail());
+            }
+
+            // Update name in session
+            String newFullName = profileUpdateRequest.getNom() + " " + profileUpdateRequest.getPrenom();
+            session.setAttribute("userName", newFullName);
+
+            log.info("Profile updated successfully for user: {}", currentEmail);
+            redirectAttributes.addFlashAttribute("successMessage", "Profile updated successfully!");
+
+        } catch (Exception e) {
+            log.error("Profile update failed for {}: {}", currentEmail, e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Failed to update profile: " + e.getMessage());
+        }
+
+        return "redirect:/profile";
     }
 }
