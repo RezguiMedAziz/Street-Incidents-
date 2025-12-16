@@ -4,6 +4,7 @@ import Street.Incidents.Project.Street.Incidents.Project.DAOs.AuthResponse;
 import Street.Incidents.Project.Street.Incidents.Project.DAOs.LoginRequest;
 import Street.Incidents.Project.Street.Incidents.Project.DAOs.RegisterRequest;
 import Street.Incidents.Project.Street.Incidents.Project.entities.User;
+import Street.Incidents.Project.Street.Incidents.Project.entities.Enums.Role;
 import Street.Incidents.Project.Street.Incidents.Project.repositories.UserRepository;
 import Street.Incidents.Project.Street.Incidents.Project.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -31,6 +33,8 @@ public class UserService {
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
     private final EmailService emailService;
+
+    // Existing methods for Registration, Email Verification, etc.
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -70,7 +74,6 @@ public class UserService {
             // Don't throw - user is created, they can request verification email later
         }
 
-        // Don't generate JWT token yet - user needs to verify email first
         return AuthResponse.builder()
                 .email(user.getEmail())
                 .nom(user.getNom())
@@ -89,14 +92,11 @@ public class UserService {
                     return new RuntimeException("Invalid verification code");
                 });
 
-
-        // Check if code is expired
         if (user.getVerificationCodeExpiry().isBefore(LocalDateTime.now())) {
             log.error("Verification code expired for user: {}", user.getEmail());
             throw new RuntimeException("Verification code has expired");
         }
 
-        // Verify email
         user.setEmailVerified(true);
         user.setVerificationCode(null); // Clear verification code
         user.setVerificationCodeExpiry(null);
@@ -104,7 +104,6 @@ public class UserService {
 
         log.info("Email verified successfully for user: {}", user.getEmail());
 
-        // Send welcome email
         try {
             String fullName = user.getPrenom() + " " + user.getNom();
             emailService.sendWelcomeEmail(user.getEmail(), fullName);
@@ -130,7 +129,6 @@ public class UserService {
             throw new RuntimeException("Email already verified");
         }
 
-        // Generate new verification code
         String newVerificationCode = UUID.randomUUID().toString();
         LocalDateTime newExpiryDate = LocalDateTime.now().plusHours(24);
 
@@ -138,7 +136,6 @@ public class UserService {
         user.setVerificationCodeExpiry(newExpiryDate);
         userRepository.save(user);
 
-        // Send verification email
         String fullName = user.getPrenom() + " " + user.getNom();
         emailService.sendVerificationEmail(email, fullName, newVerificationCode);
 
@@ -150,34 +147,26 @@ public class UserService {
         log.info("Login attempt for email: {}", request.getEmail());
 
         try {
-            // First, check if user exists
             User user = userRepository.findByEmail(request.getEmail())
                     .orElseThrow(() -> {
                         log.error("User not found: {}", request.getEmail());
                         return new RuntimeException("User not found");
                     });
 
-            log.info("User found: {}, active: {}, email verified: {}",
-                    request.getEmail(), user.isActif(), user.isEmailVerified());
+            log.info("User found: {}, active: {}, email verified: {}", request.getEmail(), user.isActif(), user.isEmailVerified());
 
-            // Check if email is verified
             if (!user.isEmailVerified()) {
                 log.warn("Login attempt with unverified email: {}", request.getEmail());
-                throw new RuntimeException("Please verify your email first. Check your inbox or request a new verification email.");
+                throw new RuntimeException("Please verify your email first.");
             }
 
-            // Check if account is active
             if (!user.isActif()) {
                 log.warn("Login attempt with inactive account: {}", request.getEmail());
-                throw new RuntimeException("Account is not active. Please contact support.");
+                throw new RuntimeException("Account is not active.");
             }
 
-            // Try to authenticate
             Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            request.getEmail(),
-                            request.getMotDePasse()
-                    )
+                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getMotDePasse())
             );
 
             log.info("Authentication successful for: {}", request.getEmail());
@@ -206,5 +195,53 @@ public class UserService {
             log.error("Unexpected error during login for {}: {}", request.getEmail(), e.getMessage());
             throw new RuntimeException("Login failed: " + e.getMessage());
         }
+    }
+
+    // Admin methods for managing users
+
+    @Transactional
+    public User createUser(String email, String password, Role role) {
+        log.info("Creating user with email: {}", email);
+
+        if (userRepository.existsByEmail(email)) {
+            throw new RuntimeException("Email already exists");
+        }
+
+        User user = new User();
+        user.setEmail(email);
+        user.setPassword(passwordEncoder.encode(password));
+        user.setRole(role);
+        user.setActif(true);
+
+        userRepository.save(user);
+        log.info("User created successfully: {}", email);
+
+        return user;
+    }
+
+    @Transactional
+    public boolean userExistsByEmail(String email) {
+        return userRepository.existsByEmail(email);
+    }
+
+    @Transactional
+    public User changeUserRole(Long userId, Role role) {
+        log.info("Changing role for user ID: {}", userId);
+
+        User user = userRepository.findById(userId).orElseThrow(() -> {
+            log.error("User not found with ID: {}", userId);
+            return new RuntimeException("User not found");
+        });
+
+        user.setRole(role);
+        userRepository.save(user);
+        log.info("Role changed for user ID: {}", userId);
+
+        return user;
+    }
+
+    @Transactional
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
     }
 }

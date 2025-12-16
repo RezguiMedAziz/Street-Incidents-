@@ -111,11 +111,15 @@ public class PageController {
     }
 
 
+
+
     @PostMapping("/api/auth/login-form")
     public String loginForm(@ModelAttribute LoginRequest loginRequest,
                             HttpServletRequest request,
                             HttpServletResponse response,
-                            RedirectAttributes redirectAttributes) {
+                            RedirectAttributes redirectAttributes,
+                            Model model) {
+
         log.info("Login attempt for email: {}", loginRequest.getEmail());
 
         try {
@@ -132,7 +136,10 @@ public class PageController {
             session.setAttribute("userName", authResponse.getNom() + " " + authResponse.getPrenom());
             session.setAttribute("userRole", authResponse.getRole());
 
-            // ✅ CRITICAL: Also store authentication in Spring Security context
+            // Add the userRole to the model so it can be accessed in Thymeleaf
+            model.addAttribute("userRole", authResponse.getRole()); // Add userRole to the model
+
+            // Store authentication in Spring Security context
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
                             authResponse.getEmail(),
@@ -143,22 +150,16 @@ public class PageController {
             SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
             securityContext.setAuthentication(authentication);
             SecurityContextHolder.setContext(securityContext);
-
             // Store Spring Security context in session
             session.setAttribute("SPRING_SECURITY_CONTEXT", securityContext);
-
-            // Set session timeout
+            // Set session timeout (optional)
             session.setMaxInactiveInterval(30 * 60); // 30 minutes
-
             log.info("Session attributes saved for user: {}", authResponse.getEmail());
-            log.info("All session attributes:");
-            Enumeration<String> attrNames = session.getAttributeNames();
-            while (attrNames.hasMoreElements()) {
-                String name = attrNames.nextElement();
-                log.info("  - {}: {}", name, session.getAttribute(name));
-            }
-
-            return "redirect:/dashboard";
+            model.addAttribute("userName", session.getAttribute("userName"));
+            // Redirect based on user role
+            log.info("User role: {}", authResponse.getRole());
+            return "redirect:/home";  
+            
 
         } catch (Exception e) {
             log.error("Login failed for {}: {}", loginRequest.getEmail(), e.getMessage());
@@ -166,6 +167,7 @@ public class PageController {
             return "redirect:/login-page?error=true";
         }
     }
+
 
     @PostMapping("/api/auth/register-form")
     public String registerForm(@ModelAttribute RegisterRequest registerRequest,
