@@ -1,120 +1,10 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main}">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Street Incidents</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>Dashboard - Street Incidents</title>
     <style>
-        :root {
-            --primary-blue: #1e3a5f;
-            --secondary-blue: #2c5282;
-            --accent-blue: #3182ce;
-            --gray-dark: #2d3748;
-            --gray-medium: #4a5568;
-            --gray-light: #e2e8f0;
-            --sidebar-width: 260px;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f7fafc;
-        }
-
-        .sidebar {
-            position: fixed;
-            left: 0;
-            top: 0;
-            height: 100vh;
-            width: var(--sidebar-width);
-            background: linear-gradient(180deg, var(--primary-blue) 0%, var(--gray-dark) 100%);
-            color: white;
-            padding: 0;
-            overflow-y: auto;
-            box-shadow: 4px 0 12px rgba(0, 0, 0, 0.1);
-            z-index: 1000;
-        }
-
-        .sidebar-header {
-            padding: 30px 20px;
-            text-align: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            background: rgba(0, 0, 0, 0.2);
-        }
-
-        .sidebar-header img {
-            width: 60px;
-            height: 60px;
-            object-fit: contain;
-            margin-bottom: 12px;
-            filter: brightness(0) invert(1);
-        }
-
-        .sidebar-header h4 {
-            font-size: 20px;
-            font-weight: 700;
-            margin: 0;
-            color: white;
-        }
-
-        .sidebar-menu {
-            padding: 20px 0;
-        }
-
-        .sidebar-menu ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .sidebar-menu li {
-            margin: 5px 15px;
-        }
-
-        .sidebar-menu a {
-            display: flex;
-            align-items: center;
-            padding: 14px 18px;
-            color: rgba(255, 255, 255, 0.8);
-            text-decoration: none;
-            border-radius: 10px;
-            transition: all 0.3s ease;
-            font-size: 15px;
-        }
-
-        .sidebar-menu a i {
-            width: 24px;
-            margin-right: 12px;
-            font-size: 18px;
-        }
-
-        .sidebar-menu a:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            transform: translateX(5px);
-        }
-
-        .sidebar-menu a.active {
-            background: linear-gradient(135deg, var(--accent-blue), rgba(255, 255, 255, 0.2));
-            color: white;
-            font-weight: 600;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        }
-
-        .main-content {
-            margin-left: var(--sidebar-width);
-            padding: 30px;
-            min-height: 100vh;
-        }
-
         .welcome-card {
             background: linear-gradient(135deg, var(--accent-blue) 0%, var(--secondary-blue) 100%);
             color: white;
@@ -156,173 +46,34 @@
             opacity: 1;
         }
 
-        /* Hide menu items by default - JS will show them */
-        .menu-admin,
-        .menu-citoyen {
-            display: none;
-        }
-
         @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-            }
-
-            .main-content {
-                margin-left: 0;
-            }
-
             .welcome-card h1 {
                 font-size: 24px;
-            }
-
-            .stats-container {
-                grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
-
 <body>
-    <div class="container-fluid p-0">
-        <div class="row g-0">
-            <!-- Sidebar -->
-            <nav class="sidebar">
-                <div class="sidebar-header">
-                    <img th:src="@{/logo.png}" alt="Street Incidents Logo" width="100" height="100"
-                        style="display: block; margin: 0 auto;">
-                    <h4>Street Incidents</h4>
-                </div>
-                <div class="sidebar-menu">
-                    <ul>
-                        <!-- Dashboard - visible to all -->
-                        <li>
-                            <a th:href="@{/}" class="active">
-                                <i class="fas fa-tachometer-alt"></i>
-                                <span>Dashboard</span>
-                            </a>
-                        </li>
-
-                        <!-- Incidents - only for CITOYEN -->
-                        <li class="menu-citoyen" id="menu-citoyen-incidents">
-                            <a th:href="@{/citizen/incidents}">
-                                <i class="fas fa-exclamation-circle"></i>
-                                <span>Incidents</span>
-                            </a>
-                        </li>
-
-
-                        <!-- Profile - visible to all -->
-                        <li>
-                            <a th:href="@{/profile}">
-                                <i class="fas fa-user"></i>
-                                <span>Profile</span>
-                            </a>
-                        </li>
-
-                        <!-- Incidents - only for ADMINISTRATEUR -->
-                        <li class="menu-admin" id="menu-incidents">
-                            <a th:href="@{/incidents}">
-                                <i class="fas fa-exclamation-circle"></i>
-                                <span>Incidents</span>
-                            </a>
-                        </li>
-
-                        <!-- Manage Users - only for ADMINISTRATEUR -->
-                        <li class="menu-admin" id="menu-users">
-                            <a th:href="@{/admin/dashboard}">
-                                <i class="fas fa-users-cog"></i>
-                                <span>Manage Users</span>
-                            </a>
-                        </li>
-
-                        <!-- Notifications - only for ADMINISTRATEUR -->
-                        <li class="menu-admin" id="menu-notifications">
-                            <a th:href="@{/notifications}">
-                                <i class="fas fa-bell"></i>
-                                <span>Notifications</span>
-                            </a>
-                        </li>
-
-                        <!-- Profile - only for CITOYEN (DUPLICATE - REMOVE THIS) -->
-                        <!-- This is redundant since Profile is already visible to all above -->
-                        <!-- <li class="menu-citoyen" id="menu-profile">
-                            <a th:href="@{/profile}">
-                                <i class="fas fa-user"></i>
-                                <span>Profile</span>
-                            </a>
-                        </li> -->
-
-                        <!-- Logout - visible to all -->
-                        <li>
-                            <a th:href="@{/logout}">
-                                <i class="fas fa-sign-out-alt"></i>
-                                <span>Logout</span>
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-
-            </nav>
-
-            <!-- Main Content -->
-            <main class="main-content">
-                <div th:replace="${body != null ? body : 'admin/defaultFragment'}"></div>
-            </main>
-        </div>
+<div layout:fragment="content">
+    <!-- Welcome Card -->
+    <div class="welcome-card">
+        <h1>Welcome, <span th:text="${userName}">User</span>!</h1>
+        <p class="lead">Role: <span th:text="${userRole}">User Role</span></p>
+        <p>Email: <span th:text="${userEmail}">user@example.com</span></p>
+        <p>Manage your street incidents and stay updated with the latest notifications.</p>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-
-    <script th:inline="javascript">
-        // Access session variables from Thymeleaf
-        /*<![CDATA[*/
-        var userRole = /*[[${userRole}]]*/ 'GUEST';
-        var userName = /*[[${userName}]]*/ 'Guest';
-        var userEmail = /*[[${userEmail}]]*/ '';
-        /*]]>*/
-
-        console.log('=== SESSION INFO ===');
-        console.log('User Role:', userRole);
-        console.log('User Name:', userName);
-        console.log('User Email:', userEmail);
-        console.log('==================');
-
-        // Conditional rendering based on user role
-        document.addEventListener('DOMContentLoaded', function () {
-            console.log('Dashboard loaded for:', userName, '(' + userRole + ')');
-
-            // Get menu items by class
-            const adminMenus = document.querySelectorAll('.menu-admin');
-
-            console.log('Admin menus found:', adminMenus.length);
-
-            // Show menu items based on user role
-            if (userRole === 'ADMINISTRATEUR' || userRole === 'AGENT_MUNICIPAL') {
-                console.log('Showing admin menus...');
-                adminMenus.forEach(menu => {
-                    menu.style.display = 'block';
-                    console.log('- Showed:', menu.id);
-                });
-            } else {
-                console.log('Hiding admin menus for regular user');
-                adminMenus.forEach(menu => {
-                    menu.style.display = 'none';
-                });
-            }
-
-            const citizenMenus = document.querySelectorAll('.menu-citoyen');
-
-            if (userRole === 'CITOYEN') {
-                citizenMenus.forEach(menu => menu.style.display = 'block');
-            } else {
-                citizenMenus.forEach(menu => menu.style.display = 'none');
-            }
-
-
-            console.log('Menu rendering complete!');
-        });
-    </script>
-
+    <!-- Add more dashboard content here as needed -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Dashboard Overview</h5>
+                    <p class="card-text">This is your dashboard where you can view statistics and manage your activities.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 </body>
-
 </html>

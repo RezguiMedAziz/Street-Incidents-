@@ -88,7 +88,7 @@ public class SecurityConfig {
                         // ✅ Web Pages
                         .requestMatchers(
                                 "/",                            // GET: Home redirect
-                                "/home",                        // GET: Home page
+                                "/layouts/main",                        // GET: Home page
                                 "/login-page",                  // GET: Login page
                                 "/register-page",               // GET: Register page
                                 "/logout",                      // GET/POST: Logout
