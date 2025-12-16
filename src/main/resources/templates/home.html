@@ -202,6 +202,15 @@
                             </a>
                         </li>
 
+                        <!-- Incidents - only for CITOYEN -->
+                        <li class="menu-citoyen" id="menu-citoyen-incidents">
+                            <a th:href="@{/citizen/incidents}">
+                                <i class="fas fa-exclamation-circle"></i>
+                                <span>Incidents</span>
+                            </a>
+                        </li>
+
+
                         <!-- Profile - visible to all -->
                         <li>
                             <a th:href="@{/profile}">
@@ -300,6 +309,15 @@
                     menu.style.display = 'none';
                 });
             }
+
+            const citizenMenus = document.querySelectorAll('.menu-citoyen');
+
+            if (userRole === 'CITOYEN') {
+                citizenMenus.forEach(menu => menu.style.display = 'block');
+            } else {
+                citizenMenus.forEach(menu => menu.style.display = 'none');
+            }
+
 
             console.log('Menu rendering complete!');
         });

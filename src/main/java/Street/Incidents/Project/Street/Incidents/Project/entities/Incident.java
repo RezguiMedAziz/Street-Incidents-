@@ -3,7 +3,7 @@ package Street.Incidents.Project.Street.Incidents.Project.entities;
 import Street.Incidents.Project.Street.Incidents.Project.entities.Enums.Departement;
 import Street.Incidents.Project.Street.Incidents.Project.entities.Enums.Priorite;
 import Street.Incidents.Project.Street.Incidents.Project.entities.Enums.StatutIncident;
-import Street.Incidents.Project.Street.Incidents.Project.entities.converter.CryptoConverter;
+//import Street.Incidents.Project.Street.Incidents.Project.entities.converter.CryptoConverter;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -35,10 +35,10 @@ public class Incident {
     private LocalDateTime dateCreation;
     private LocalDateTime dateResolution;
 
-    @Convert(converter = CryptoConverter.class)
+//    @Convert(converter = CryptoConverter.class)
     private String latitude;
 
-    @Convert(converter = CryptoConverter.class)
+//    @Convert(converter = CryptoConverter.class)
     private String longitude;
 
 
