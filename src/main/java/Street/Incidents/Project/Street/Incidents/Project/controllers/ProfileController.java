@@ -2,6 +2,7 @@ package Street.Incidents.Project.Street.Incidents.Project.controllers;
 
 import Street.Incidents.Project.Street.Incidents.Project.DAOs.ProfileUpdateRequest;
 import Street.Incidents.Project.Street.Incidents.Project.DAOs.ChangePasswordRequest;
+import Street.Incidents.Project.Street.Incidents.Project.entities.Enums.Role;
 import Street.Incidents.Project.Street.Incidents.Project.services.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -32,6 +33,33 @@ public class ProfileController {
 
         String email = (String) session.getAttribute("userEmail");
 
+        // ✅ Session handling - SAME AS ADMIN CONTROLLER
+        Object roleObj = session.getAttribute("userRole");
+        String userRole = null;
+
+        if (roleObj instanceof Role) {
+            userRole = ((Role) roleObj).name();
+            log.debug("User role retrieved as enum: {}", userRole);
+        } else if (roleObj instanceof String) {
+            userRole = (String) roleObj;
+            log.debug("User role retrieved as string: {}", userRole);
+        } else {
+            log.warn("User role is null or unexpected type");
+            userRole = "GUEST";
+        }
+
+        String userName = (String) session.getAttribute("userName");
+        String userEmail = (String) session.getAttribute("userEmail");
+
+        // ✅ Add session attributes to model - SAME AS ADMIN CONTROLLER
+        model.addAttribute("userRole", userRole);
+        model.addAttribute("userName", userName);
+        model.addAttribute("userEmail", userEmail);
+        model.addAttribute("activePage", "profile");
+        model.addAttribute("pageTitle", "Profile - Street Incidents");
+
+        log.info("Profile page loaded for user: {} ({})", userName, userRole);
+
         try {
             // Get user details
             var user = userService.getUserByEmail(email);
@@ -47,13 +75,6 @@ public class ProfileController {
             log.error("Error getting user details: {}", e.getMessage());
             model.addAttribute("error", "Unable to load profile details");
         }
-
-        // Set active page for sidebar highlighting
-        model.addAttribute("activePage", "profile");
-        model.addAttribute("userEmail", session.getAttribute("userEmail"));
-        model.addAttribute("userName", session.getAttribute("userName"));
-        model.addAttribute("userRole", session.getAttribute("userRole"));
-        model.addAttribute("pageTitle", "Profile - Street Incidents");
 
         return "profile";
     }
