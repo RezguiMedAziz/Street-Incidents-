@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.ui.Model;
 import jakarta.validation.Valid;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.security.Principal;
 
@@ -42,12 +43,12 @@ public class IncidentController {
             @RequestParam(value = "gouvernorat", required = false) String gouvernorat,
             @RequestParam(value = "municipalite", required = false) String municipalite,
             Principal principal,
-            Model model
+            Model model,
+            RedirectAttributes redirectAttributes
     ) {
         if (result.hasErrors()) {
-            result.getAllErrors().forEach(error ->
-                    System.out.println("  - " + error.getDefaultMessage())
-            );
+            model.addAttribute("alertType", "danger");
+            model.addAttribute("alertMessage", "Veuillez corriger les erreurs dans le formulaire.");
             model.addAttribute("categories", Departement.values());
             model.addAttribute("priorites", Priorite.values());
             return "incident/incidents";
@@ -62,14 +63,22 @@ public class IncidentController {
                     photosFiles
             );
 
+            // Pour le dashboard
+            redirectAttributes.addFlashAttribute("alertType", "success");
+            redirectAttributes.addFlashAttribute("alertMessage",
+                    "Incident signalé avec succès ! Votre déclaration a été enregistrée.");
+
             return "redirect:/dashboard";
 
         } catch (Exception e) {
             e.printStackTrace();
-            model.addAttribute("error",
+
+            model.addAttribute("alertType", "danger");
+            model.addAttribute("alertMessage",
                     "Erreur lors de l'enregistrement de l'incident : " + e.getMessage());
             model.addAttribute("categories", Departement.values());
             model.addAttribute("priorites", Priorite.values());
+
             return "incident/incidents";
         }
     }

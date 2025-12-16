@@ -313,6 +313,7 @@
 
         <!-- Main Content -->
         <main class="main-content">
+            <div th:replace="~{fragments/alerts :: alert}"></div>
             <!-- Welcome Card -->
             <div class="welcome-card">
                 <h1>Welcome back, <span th:text="${session.userName}">User</span>!</h1>
