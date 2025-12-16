@@ -1,136 +1,13 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main}">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile - Street Incidents</title>
-
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <!-- ALL CSS IN ONE PAGE -->
     <style>
-        :root {
-            --primary-blue: #2C5282;
-            --secondary-blue: #4299E1;
-            --accent-blue: #3182CE;
-            --gray-dark: #2D3748;
-            --gray-medium: #4A5568;
-            --gray-light: #E2E8F0;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f7fa;
-            color: var(--gray-dark);
-        }
-
-        /* Layout Structure */
-        .layout-container {
-            display: flex;
-            min-height: 100vh;
-        }
-
-        /* Sidebar Styles */
-        .sidebar {
-            width: 260px;
-            background: linear-gradient(180deg, var(--primary-blue) 0%, var(--gray-dark) 100%);
-            color: white;
-            position: fixed;
-            height: 100vh;
-            overflow-y: auto;
-            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-            z-index: 1000;
-            transition: all 0.3s ease;
-        }
-
-        .sidebar-header {
-            padding: 24px 20px;
-            text-align: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .sidebar-header h4 {
-            margin-top: 12px;
-            font-size: 18px;
-            font-weight: 600;
-            color: white;
-        }
-
-        .sidebar-menu {
-            padding: 20px 0;
-        }
-
-        .sidebar-menu ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .sidebar-menu li {
-            margin-bottom: 4px;
-        }
-
-        .sidebar-menu a {
-            display: flex;
-            align-items: center;
-            padding: 14px 24px;
-            color: rgba(255, 255, 255, 0.85);
-            text-decoration: none;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-        .sidebar-menu a:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            padding-left: 28px;
-        }
-
-        .sidebar-menu a.active {
-            background: rgba(255, 255, 255, 0.15);
-            color: white;
-            border-left: 4px solid var(--secondary-blue);
-            padding-left: 20px;
-        }
-
-        .sidebar-menu a i {
-            width: 24px;
-            margin-right: 12px;
-            font-size: 16px;
-        }
-
-        .sidebar-menu a span {
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        /* Main Content Area */
-        .main-content {
-            flex: 1;
-            margin-left: 260px;
-            padding: 30px;
-            background-color: #f5f7fa;
-            min-height: 100vh;
-        }
-
-        .content-wrapper {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        /* Profile-specific styles */
+        /* Profile-specific additional styles */
         .welcome-card {
-            background: linear-gradient(135deg, var(--accent-blue) 0%, var(--secondary-blue) 100%);
+            background: linear-gradient(135deg, #3182CE 0%, #2C5282 100%);
             color: white;
             border-radius: 12px;
             padding: 24px 30px;
@@ -238,14 +115,14 @@
             padding: 24px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
             margin-bottom: 20px;
-            border: 1px solid var(--gray-light);
+            border: 1px solid #e2e8f0;
         }
 
         .profile-card h3 {
-            color: var(--primary-blue);
+            color: #2C5282;
             margin-bottom: 20px;
             padding-bottom: 12px;
-            border-bottom: 2px solid var(--gray-light);
+            border-bottom: 2px solid #e2e8f0;
             font-weight: 600;
         }
 
@@ -260,12 +137,12 @@
             background: #f8fafc;
             padding: 16px;
             border-radius: 8px;
-            border-left: 4px solid var(--accent-blue);
+            border-left: 4px solid #3182CE;
         }
 
         .info-item label {
             display: block;
-            color: var(--gray-medium);
+            color: #4A5568;
             font-size: 12px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -274,7 +151,7 @@
         }
 
         .info-item .value {
-            color: var(--gray-dark);
+            color: #2D3748;
             font-size: 16px;
             font-weight: 500;
         }
@@ -284,33 +161,37 @@
         }
 
         .form-group label {
-            color: var(--gray-medium);
+            color: #4A5568;
             font-weight: 600;
             margin-bottom: 8px;
             display: block;
         }
 
         .form-control {
-            border: 1px solid var(--gray-light);
+            border: 1px solid #e2e8f0;
             border-radius: 8px;
             padding: 10px 14px;
             font-size: 14px;
             transition: all 0.3s ease;
+            width: 100%;
         }
 
         .form-control:focus {
-            border-color: var(--accent-blue);
+            border-color: #3182CE;
             box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+            outline: none;
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--accent-blue) 0%, var(--secondary-blue) 100%);
+            background: linear-gradient(135deg, #3182CE 0%, #4299E1 100%);
             border: none;
             padding: 10px 24px;
             border-radius: 8px;
             font-weight: 600;
             font-size: 14px;
             transition: all 0.3s ease;
+            color: white;
+            cursor: pointer;
         }
 
         .btn-primary:hover {
@@ -318,281 +199,283 @@
             box-shadow: 0 4px 12px rgba(49, 130, 206, 0.3);
         }
 
+        .btn-outline-secondary {
+            border: 1px solid #e2e8f0;
+            background: white;
+            color: #4A5568;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-outline-secondary:hover {
+            background: #f8fafc;
+            border-color: #cbd5e0;
+            color: #2D3748;
+        }
+
+        .badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge.bg-success {
+            background-color: #10b981 !important;
+            color: white;
+        }
+
+        .text-muted {
+            color: #6b7280;
+            font-size: 13px;
+        }
+
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            margin: 0 -10px;
+        }
+
+        .col-md-6 {
+            flex: 0 0 50%;
+            max-width: 50%;
+            padding: 0 10px;
+        }
+
+        .mt-4 {
+            margin-top: 1.5rem;
+        }
+
+        .ms-2 {
+            margin-left: 0.5rem;
+        }
+
+        .me-2 {
+            margin-right: 0.5rem;
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
-            .sidebar {
-                width: 0;
-                transform: translateX(-100%);
-            }
-
-            .sidebar.active {
-                width: 260px;
-                transform: translateX(0);
-            }
-
-            .main-content {
-                margin-left: 0;
-                padding: 20px;
-            }
-
-            .mobile-menu-toggle {
-                display: block;
-                position: fixed;
-                top: 20px;
-                left: 20px;
-                z-index: 1001;
-                background: var(--primary-blue);
-                color: white;
-                border: none;
-                padding: 10px 15px;
-                border-radius: 8px;
-                cursor: pointer;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-            }
-
             .profile-info {
                 grid-template-columns: 1fr;
             }
-        }
 
-        .mobile-menu-toggle {
-            display: none;
-        }
-
-        /* Scrollbar Styling */
-        .sidebar::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .sidebar::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.1);
-        }
-
-        .sidebar::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.3);
-            border-radius: 3px;
-        }
-
-        .sidebar::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.5);
+            .col-md-6 {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
         }
     </style>
 </head>
 <body>
-<div class="layout-container">
-    <!-- Mobile Menu Toggle -->
-    <button class="mobile-menu-toggle" onclick="toggleSidebar()">
-        <i class="fas fa-bars"></i>
-    </button>
+<div layout:fragment="content">
+    <div class="container-fluid">
+        <!-- Flash Messages -->
+        <div th:if="${successMessage}" class="alert alert-success" role="alert">
+            <span th:text="${successMessage}">Your profile has been updated successfully.</span>
+            <button class="close-btn" aria-label="Close">×</button>
+        </div>
 
-    <!-- Include Sidebar -->
-    <div th:replace="~{commun/side :: sidebar}"></div>
+        <div th:if="${errorMessage}" class="alert alert-danger" role="alert">
+            <span th:text="${errorMessage}">An error occurred while updating your profile.</span>
+            <button class="close-btn" aria-label="Close">×</button>
+        </div>
 
-    <!-- Main Content -->
-    <main class="main-content">
-        <div class="content-wrapper">
-            <!-- Flash Messages -->
-            <div th:if="${successMessage}" class="alert alert-success" role="alert">
-                <span th:text="${successMessage}">Your profile has been updated successfully.</span>
-                <button class="close-btn" aria-label="Close">×</button>
+        <!-- Welcome Card -->
+        <div class="welcome-card">
+            <h1>Profile Settings</h1>
+            <p>Manage your account information and preferences</p>
+        </div>
+
+        <!-- Profile Information -->
+        <div class="profile-card">
+            <h3><i class="fas fa-user-circle me-2"></i>Account Information</h3>
+
+            <div class="profile-info">
+                <div class="info-item">
+                    <label>Full Name</label>
+                    <div class="value">
+                        <span th:if="${userDetails?.nom != null and userDetails?.prenom != null}"
+                              th:text="${userDetails.nom} + ' ' + ${userDetails.prenom}">John Doe</span>
+                        <span th:unless="${userDetails?.nom != null and userDetails?.prenom != null}">Not set</span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <label>Email Address</label>
+                    <div class="value" th:text="${userDetails?.email ?: 'Not set'}">john.doe@example.com</div>
+                </div>
+                <div class="info-item">
+                    <label>Account Role</label>
+                    <div class="value" th:text="${userRole ?: 'User'}">User</div>
+                </div>
+                <div class="info-item">
+                    <label>Account Status</label>
+                    <div class="value">
+                        <span class="badge bg-success"
+                              th:if="${userDetails?.actif and userDetails?.emailVerified}">Active</span>
+                        <span class="badge bg-secondary"
+                              th:unless="${userDetails?.actif and userDetails?.emailVerified}">Inactive</span>
+                    </div>
+                </div>
             </div>
 
-            <div th:if="${errorMessage}" class="alert alert-danger" role="alert">
-                <span th:text="${errorMessage}">An error occurred while updating your profile.</span>
-                <button class="close-btn" aria-label="Close">×</button>
-            </div>
-
-            <!-- Welcome Card -->
-            <div class="welcome-card">
-                <h1>Profile Settings</h1>
-                <p>Manage your account information and preferences</p>
-            </div>
-
-            <!-- Profile Information -->
-            <div class="profile-card">
-                <h3><i class="fas fa-user-circle me-2"></i>Account Information</h3>
-
-                <div class="profile-info">
-                    <div class="info-item">
-                        <label>Full Name</label>
-                        <div class="value" th:text="${userDetails?.nom + ' ' + userDetails?.prenom}">John Doe</div>
+            <!-- Update Form -->
+            <h3><i class="fas fa-edit me-2"></i>Update Profile</h3>
+            <form th:action="@{/update-profile}" method="post" th:object="${profileUpdateRequest}">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="nom">Last Name</label>
+                            <input type="text" class="form-control" id="nom" name="nom"
+                                   th:value="${userDetails?.nom}"
+                                   placeholder="Enter your last name">
+                        </div>
                     </div>
-                    <div class="info-item">
-                        <label>Email Address</label>
-                        <div class="value" th:text="${userDetails?.email}">john.doe@example.com</div>
-                    </div>
-                    <div class="info-item">
-                        <label>Account Role</label>
-                        <div class="value" th:text="${session.userRole}">User</div>
-                    </div>
-                    <div class="info-item">
-                        <label>Account Status</label>
-                        <div class="value">
-                            <span class="badge bg-success">Active</span>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="prenom">First Name</label>
+                            <input type="text" class="form-control" id="prenom" name="prenom"
+                                   th:value="${userDetails?.prenom}"
+                                   placeholder="Enter your first name">
                         </div>
                     </div>
                 </div>
 
-                <!-- Update Form -->
-                <h3><i class="fas fa-edit me-2"></i>Update Profile</h3>
-                <form th:action="@{/update-profile}" method="post" th:object="${profileUpdateRequest}">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="nom">Last Name</label>
-                                <input type="text" class="form-control" id="nom" name="nom"
-                                       th:value="${userDetails?.nom}"
-                                       placeholder="Enter your last name" required>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="prenom">First Name</label>
-                                <input type="text" class="form-control" id="prenom" name="prenom"
-                                       th:value="${userDetails?.prenom}"
-                                       placeholder="Enter your first name" required>
-                            </div>
-                        </div>
-                    </div>
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" class="form-control" id="email" name="email"
+                           th:value="${userDetails?.email}"
+                           placeholder="Enter your email address" required>
+                    <small class="text-muted">We'll send verification email if you change this.</small>
+                </div>
 
-                    <div class="form-group">
-                        <label for="email">Email Address</label>
-                        <input type="email" class="form-control" id="email" name="email"
-                               th:value="${userDetails?.email}"
-                               placeholder="Enter your email address" required>
-                        <small class="text-muted">We'll send verification email if you change this.</small>
-                    </div>
-
-                    <div class="mt-4">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save me-2"></i>Save Changes
-                        </button>
-                        <a th:href="@{/dashboard}" class="btn btn-outline-secondary ms-2">
-                            <i class="fas fa-times me-2"></i>Cancel
-                        </a>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Change Password Card -->
-            <div class="profile-card">
-                <h3><i class="fas fa-key me-2"></i>Change Password</h3>
-                <form th:action="@{/change-password-request}" method="post" th:object="${changePasswordRequest}" id="changePasswordForm">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="currentPassword">Current Password</label>
-                                <input type="password" class="form-control" id="currentPassword"
-                                       th:field="*{currentPassword}"
-                                       placeholder="Enter your current password" required>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="newPassword">New Password</label>
-                                <input type="password" class="form-control" id="newPassword"
-                                       th:field="*{newPassword}"
-                                       placeholder="Enter new password" required>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="confirmPassword">Confirm New Password</label>
-                        <input type="password" class="form-control" id="confirmPassword"
-                               th:field="*{confirmPassword}"
-                               placeholder="Confirm new password" required>
-                        <small class="text-muted">You will receive a confirmation email to verify this change.</small>
-                    </div>
-
-                    <div class="mt-4">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-key me-2"></i>Change Password
-                        </button>
-                    </div>
-                </form>
-            </div>
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Save Changes
+                    </button>
+                    <a th:href="@{/admin/home}" class="btn btn-outline-secondary ms-2">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </a>
+                </div>
+            </form>
         </div>
-    </main>
-</div>
 
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <!-- Change Password Card -->
+        <div class="profile-card">
+            <h3><i class="fas fa-key me-2"></i>Change Password</h3>
+            <form th:action="@{/change-password}" method="post" th:object="${changePasswordRequest}">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="currentPassword">Current Password</label>
+                            <input type="password" class="form-control" id="currentPassword"
+                                   name="currentPassword"
+                                   placeholder="Enter your current password" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="newPassword">New Password</label>
+                            <input type="password" class="form-control" id="newPassword"
+                                   name="newPassword"
+                                   placeholder="Enter new password" minlength="6" required>
+                        </div>
+                    </div>
+                </div>
 
-<!-- Mobile Menu Script -->
-<script>
-    function toggleSidebar() {
-        const sidebar = document.querySelector('.sidebar');
-        sidebar.classList.toggle('active');
-    }
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm New Password</label>
+                    <input type="password" class="form-control" id="confirmPassword"
+                           name="confirmPassword"
+                           placeholder="Confirm new password" minlength="6" required>
+                    <small class="text-muted">Password must be at least 6 characters long.</small>
+                </div>
 
-    // Close sidebar when clicking outside on mobile
-    document.addEventListener('click', function(event) {
-        const sidebar = document.querySelector('.sidebar');
-        const toggle = document.querySelector('.mobile-menu-toggle');
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-key me-2"></i>Change Password
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-        if (window.innerWidth <= 768 &&
-            sidebar.classList.contains('active') &&
-            !sidebar.contains(event.target) &&
-            !toggle.contains(event.target)) {
-            sidebar.classList.remove('active');
-        }
-    });
-</script>
-
-<!-- Profile-specific scripts -->
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Handle alert close buttons
-        document.querySelectorAll('.close-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                dismissAlert(this.closest('.alert'));
+    <!-- Profile-specific scripts -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle alert close buttons
+            document.querySelectorAll('.close-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    dismissAlert(this.closest('.alert'));
+                });
             });
-        });
 
-        // Auto-dismiss alerts after 5 seconds
-        setTimeout(function() {
-            document.querySelectorAll('.alert').forEach(alert => {
-                dismissAlert(alert);
-            });
-        }, 5000);
-
-        function dismissAlert(alert) {
-            alert.classList.add('fade-out');
+            // Auto-dismiss alerts after 5 seconds
             setTimeout(function() {
-                alert.remove();
-            }, 500);
-        }
+                document.querySelectorAll('.alert').forEach(alert => {
+                    dismissAlert(alert);
+                });
+            }, 5000);
 
-        // Form validation
-        const form = document.querySelector('form');
-        if (form) {
-            form.addEventListener('submit', function(e) {
-                const email = document.getElementById('email').value;
-                const nom = document.getElementById('nom').value;
-                const prenom = document.getElementById('prenom').value;
-
-                if (!email || !nom || !prenom) {
-                    e.preventDefault();
-                    alert('Please fill in all required fields.');
-                    return false;
+            function dismissAlert(alert) {
+                if (alert) {
+                    alert.classList.add('fade-out');
+                    setTimeout(function() {
+                        alert.remove();
+                    }, 500);
                 }
+            }
 
-                if (!isValidEmail(email)) {
-                    e.preventDefault();
-                    alert('Please enter a valid email address.');
-                    return false;
-                }
+            // Password confirmation validation
+            const passwordForm = document.querySelector('form[action*="change-password"]');
+            if (passwordForm) {
+                passwordForm.addEventListener('submit', function(e) {
+                    const newPassword = document.getElementById('newPassword');
+                    const confirmPassword = document.getElementById('confirmPassword');
 
-                return true;
-            });
-        }
+                    if (newPassword && confirmPassword) {
+                        if (newPassword.value !== confirmPassword.value) {
+                            e.preventDefault();
+                            alert('New password and confirmation password do not match.');
+                            return false;
+                        }
 
-        function isValidEmail(email) {
-            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            return re.test(email);
-        }
-    });
-</script>
+                        if (newPassword.value.length < 6) {
+                            e.preventDefault();
+                            alert('Password must be at least 6 characters long.');
+                            return false;
+                        }
+                    }
+                });
+            }
+
+            // Profile update form validation
+            const profileForm = document.querySelector('form[action*="update-profile"]');
+            if (profileForm) {
+                profileForm.addEventListener('submit', function(e) {
+                    const email = document.getElementById('email');
+
+                    if (email && email.value) {
+                        if (!isValidEmail(email.value)) {
+                            e.preventDefault();
+                            alert('Please enter a valid email address.');
+                            return false;
+                        }
+                    }
+                });
+            }
+
+            function isValidEmail(email) {
+                const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return re.test(email);
+            }
+        });
+    </script>
+</div>
 </body>
 </html>

@@ -1,5 +1,5 @@
 package Street.Incidents.Project.Street.Incidents.Project.controllers;
-
+import org.springframework.web.bind.annotation.ModelAttribute;
 import Street.Incidents.Project.Street.Incidents.Project.DAOs.LoginRequest;
 import Street.Incidents.Project.Street.Incidents.Project.DAOs.RegisterRequest;
 import Street.Incidents.Project.Street.Incidents.Project.services.UserService;
@@ -13,10 +13,13 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.ui.Model;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
 
 import java.util.Collections;
 import java.util.Enumeration;
@@ -45,13 +48,17 @@ public class AuthPageController {
     @PostMapping("/api/auth/login-form")
     public String loginForm(@ModelAttribute LoginRequest loginRequest,
                             HttpServletRequest request,
-                            HttpServletResponse response) {
+                            HttpServletResponse response,
+                            RedirectAttributes redirectAttributes,
+                            Model model
+                            ) {
         log.info("Login attempt for email: {}", loginRequest.getEmail());
 
         try {
             var authResponse = userService.login(loginRequest);
             log.info("Login successful for: {}", loginRequest.getEmail());
 
+            // Get or create session
             HttpSession session = request.getSession();
             log.info("Session created with ID: {}", session.getId());
 
@@ -60,6 +67,9 @@ public class AuthPageController {
             session.setAttribute("userEmail", authResponse.getEmail());
             session.setAttribute("userName", authResponse.getNom() + " " + authResponse.getPrenom());
             session.setAttribute("userRole", authResponse.getRole());
+
+            // Add the userRole to the model so it can be accessed in Thymeleaf
+            model.addAttribute("userRole", authResponse.getRole()); // Add userRole to the model
 
             // Store authentication in Spring Security context
             UsernamePasswordAuthenticationToken authentication =
@@ -72,24 +82,21 @@ public class AuthPageController {
             SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
             securityContext.setAuthentication(authentication);
             SecurityContextHolder.setContext(securityContext);
+            // Store Spring Security context in session
             session.setAttribute("SPRING_SECURITY_CONTEXT", securityContext);
-
-            // Set session timeout (30 minutes)
-            session.setMaxInactiveInterval(30 * 60);
-
+            // Set session timeout (optional)
+            session.setMaxInactiveInterval(30 * 60); // 30 minutes
             log.info("Session attributes saved for user: {}", authResponse.getEmail());
-            log.info("All session attributes:");
-            Enumeration<String> attrNames = session.getAttributeNames();
-            while (attrNames.hasMoreElements()) {
-                String name = attrNames.nextElement();
-                log.info("  - {}: {}", name, session.getAttribute(name));
-            }
+            model.addAttribute("userName", session.getAttribute("userName"));
+            // Redirect based on user role
+            log.info("User role: {}", authResponse.getRole());
+            return "redirect:/home";
 
-            return "redirect:/dashboard?loginsuccess";
 
         } catch (Exception e) {
             log.error("Login failed for {}: {}", loginRequest.getEmail(), e.getMessage());
-            return "redirect:/login-page?error";
+            redirectAttributes.addFlashAttribute("error", "Invalid email or password!");
+            return "redirect:/login-page?error=true";
         }
     }
 
