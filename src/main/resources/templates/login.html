@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Street Incidents</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
             --primary-blue: #1e3a5f;
@@ -143,16 +144,92 @@
             border: none;
             padding: 12px 16px;
             margin-bottom: 20px;
+            position: relative;
+            animation: slideInDown 0.3s ease-out;
+            transition: all 0.3s ease;
+        }
+
+        .alert.fade-out {
+            animation: fadeOut 0.5s ease-out forwards;
+        }
+
+        @keyframes slideInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
         }
 
         .alert-danger {
             background-color: #fee;
             color: #c53030;
+            border-left: 4px solid #f56565;
         }
 
         .alert-success {
             background-color: #e6fffa;
             color: #2c7a7b;
+            border-left: 4px solid #38b2ac;
+        }
+
+        .alert-info {
+            background-color: #ebf8ff;
+            color: #2c5282;
+            border-left: 4px solid #3182ce;
+        }
+
+        .alert-warning {
+            background-color: #fffaf0;
+            color: #c05621;
+            border-left: 4px solid #ed8936;
+        }
+
+        .alert .close-btn {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: inherit;
+            opacity: 0.6;
+            cursor: pointer;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            line-height: 1;
+            transition: opacity 0.2s;
+        }
+
+        .alert .close-btn:hover {
+            opacity: 1;
+        }
+
+        .alert-content {
+            padding-right: 30px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .alert-icon {
+            flex-shrink: 0;
         }
 
         .register-section {
@@ -202,16 +279,6 @@
             gap: 10px;
             justify-content: center;
         }
-
-        .input-group-text {
-            background: transparent;
-            border: 2px solid var(--gray-light);
-            border-right: none;
-        }
-
-        .input-group .form-control {
-            border-left: none;
-        }
     </style>
 </head>
 <body>
@@ -227,15 +294,51 @@
             <p>Sign in to your account</p>
         </div>
 
-        <!-- Error/Success Messages -->
-        <div th:if="${error}" class="alert alert-danger" role="alert">
-            <span th:text="${error}"></span>
+        <!-- Success Messages -->
+        <div th:if="${param.registered}" class="alert alert-success" role="alert">
+            <span>Registration successful! Please check your email to verify your account before logging in.</span>
         </div>
+
+        <div th:if="${param.verified}" class="alert alert-success" role="alert">
+            <span>Email verified successfully! You can now log in to your account.</span>
+        </div>
+
+        <div th:if="${param.logout}" class="alert alert-success" role="alert">
+            <span>You have been logged out successfully.</span>
+        </div>
+
+        <div th:if="${param.resent}" class="alert alert-success" role="alert">
+            <span>Verification email has been resent. Please check your inbox.</span>
+        </div>
+
         <div th:if="${message}" class="alert alert-success" role="alert">
             <span th:text="${message}"></span>
         </div>
+
         <div th:if="${success}" class="alert alert-success" role="alert">
             <span th:text="${success}"></span>
+        </div>
+
+        <!-- Error Messages -->
+        <div th:if="${param.error}" class="alert alert-danger" role="alert">
+            <span>Invalid email or password. Please try again.</span>
+        </div>
+
+        <div th:if="${error}" class="alert alert-danger" role="alert">
+            <span th:text="${error}"></span>
+        </div>
+
+        <!-- Warning Messages -->
+        <div th:if="${param.notverified}" class="alert alert-warning" role="alert">
+            <span>Please verify your email address before logging in. Check your inbox for the verification link.</span>
+        </div>
+
+        <div th:if="${param.expired}" class="alert alert-warning" role="alert">
+            <span>Your session has expired. Please log in again.</span>
+        </div>
+
+        <div th:if="${param.disabled}" class="alert alert-danger" role="alert">
+            <span>Your account has been disabled. Please contact support for assistance.</span>
         </div>
 
         <!-- Login Form -->
@@ -273,10 +376,65 @@
                     </div>
                 </div>
             </div>
+            <div class="forgot-password-section mt-3">
+                <p>
+                    <a th:href="@{/forgot-password-page}" class="text-decoration-none">
+                        <i class="fas fa-question-circle me-1"></i>Forgot your password?
+                    </a>
+                </p>
+            </div>
         </form>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const alerts = document.querySelectorAll('.alert');
+
+        alerts.forEach(function(alert) {
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'close-btn';
+            closeBtn.innerHTML = '×';
+            closeBtn.setAttribute('aria-label', 'Close');
+
+            const alertContent = alert.querySelector('span') || alert;
+            const contentWrapper = document.createElement('div');
+            contentWrapper.className = 'alert-content';
+
+            let icon = '';
+            if (alert.classList.contains('alert-success')) {
+                icon = '<i class="fas fa-check-circle alert-icon"></i>';
+            } else if (alert.classList.contains('alert-danger')) {
+                icon = '<i class="fas fa-exclamation-circle alert-icon"></i>';
+            } else if (alert.classList.contains('alert-warning')) {
+                icon = '<i class="fas fa-exclamation-triangle alert-icon"></i>';
+            } else if (alert.classList.contains('alert-info')) {
+                icon = '<i class="fas fa-info-circle alert-icon"></i>';
+            }
+
+            const originalContent = alert.innerHTML;
+            contentWrapper.innerHTML = icon + '<span>' + originalContent + '</span>';
+            alert.innerHTML = '';
+            alert.appendChild(contentWrapper);
+            alert.appendChild(closeBtn);
+
+            closeBtn.addEventListener('click', function() {
+                dismissAlert(alert);
+            });
+
+            setTimeout(function() {
+                dismissAlert(alert);
+            }, 5000);
+        });
+
+        function dismissAlert(alert) {
+            alert.classList.add('fade-out');
+            setTimeout(function() {
+                alert.remove();
+            }, 500);
+        }
+    });
+</script>
 </body>
 </html>

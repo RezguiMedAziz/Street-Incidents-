@@ -37,6 +37,21 @@ public class User implements UserDetails {
 
     @Builder.Default
     private boolean actif = false; // ✅ Change to false - user must verify email first
+    @Column(name = "password_reset_token")
+    private String passwordResetToken;
+
+    @Column(name = "password_reset_token_expiry")
+    private LocalDateTime passwordResetTokenExpiry;
+
+    @Column(name = "password_change_token")
+    private String passwordChangeToken;
+
+    @Column(name = "password_change_token_expiry")
+    private LocalDateTime passwordChangeTokenExpiry;
+
+    @Column(name = "temporary_new_password")
+    private String temporaryNewPassword;
+
 
     @Column(name = "verification_code", length = 64)
     private String verificationCode;

@@ -31,10 +31,14 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
+                        // ========================
+                        // PUBLIC PAGES - NO AUTH REQUIRED
+                        // ========================
+
                         // Public web pages
                         .requestMatchers("/", "/home", "/login-page", "/register-page").permitAll()
-                        // Emails
 
+                        // Email Verification Pages
                         .requestMatchers(
                                 "/verify-email-page",           // GET: Verification form page
                                 "/verify-email",                // GET: Email link verification
@@ -48,6 +52,27 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/verify-email",       // GET/POST: Verify email API
                                 "/api/auth/resend-verification" // POST: Resend verification API
+                        ).permitAll()
+
+                        // ========================
+                        // FORGET PASSWORD ENDPOINTS - NO AUTH REQUIRED
+                        // ========================
+                        .requestMatchers(
+                                "/forgot-password-page",        // GET: Forgot password page
+                                "/forgot-password-form",        // POST: Submit forgot password
+                                "/verify-reset-token-page",     // GET: Verify reset token page
+                                "/verify-reset-token-form",     // POST: Submit token verification
+                                "/reset-password-page",         // GET: Reset password page
+                                "/reset-password-form",         // POST: Submit new password
+                                "/confirm-password-change"      // GET: Confirm password change from email
+                        ).permitAll()
+
+                        // ========================
+                        // PASSWORD CHANGE SUCCESS PAGES - NO AUTH REQUIRED
+                        // ========================
+                        .requestMatchers(
+                                "/password-change-success",     // GET: Password change success page
+                                "/password-change-error"        // GET: Password change error page
                         ).permitAll()
 
                         // ========================
