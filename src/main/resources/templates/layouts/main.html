@@ -141,27 +141,6 @@
             display: none;
         }
 
-        .action-btns form {
-            display: inline-block;
-            margin: 0 2px;
-        }
-
-        .role-select {
-            width: auto;
-            display: inline-block;
-            min-width: 150px;
-        }
-
-        .badge-role {
-            font-size: 0.85rem;
-            padding: 0.4em 0.6em;
-        }
-
-        .table-responsive {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
         @media (max-width: 768px) {
             .sidebar {
                 transform: translateX(-100%);
@@ -179,8 +158,7 @@
     <!-- Sidebar -->
     <nav class="sidebar">
         <div class="sidebar-header">
-            <img th:src="@{/logo.png}" alt="Street Incidents Logo" width="100" height="100"
-                 style="display: block; margin: 0 auto;">
+            <img th:src="@{/logo.png}" alt="Street Incidents Logo">
             <h4>Street Incidents</h4>
         </div>
         <div class="sidebar-menu">
@@ -194,12 +172,21 @@
                     </a>
                 </li>
 
-                <!-- Profile - visible to ALL users (NOT just citoyen) -->
-                <li> <!-- Removed the menu-citoyen class -->
+                <!-- Profile - visible to ALL users -->
+                <li>
                     <a th:href="@{/profile}"
                        th:classappend="${activePage == 'profile'} ? 'active' : ''">
                         <i class="fas fa-user"></i>
                         <span>Profile</span>
+                    </a>
+                </li>
+
+                <!-- Incidents - only for CITOYEN -->
+                <li class="menu-citoyen" id="menu-citoyen-incidents">
+                    <a th:href="@{/citizen/incidents}"
+                       th:classappend="${activePage == 'incidents'} ? 'active' : ''">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span>Incidents</span>
                     </a>
                 </li>
 
@@ -209,15 +196,6 @@
                        th:classappend="${activePage == 'users'} ? 'active' : ''">
                         <i class="fas fa-users-cog"></i>
                         <span>Manage Users</span>
-                    </a>
-                </li>
-
-                <!-- Incidents - only for ADMINISTRATEUR -->
-                <li class="menu-admin" id="menu-incidents">
-                    <a th:href="@{/incidents}"
-                       th:classappend="${activePage == 'incidents'} ? 'active' : ''">
-                        <i class="fas fa-exclamation-circle"></i>
-                        <span>Incidents</span>
                     </a>
                 </li>
 
@@ -253,7 +231,6 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script th:inline="javascript">
-    // Access session variables from Thymeleaf
     /*<![CDATA[*/
     var userRole = /*[[${userRole}]]*/ 'GUEST';
     var userName = /*[[${userName}]]*/ 'Guest';
@@ -266,40 +243,43 @@
     console.log('User Email:', userEmail);
     console.log('==================');
 
-    // Conditional rendering based on user role
     document.addEventListener('DOMContentLoaded', function () {
         console.log('Layout loaded for:', userName, '(', userRole, ')');
 
-        // Get menu items by class
         const adminMenus = document.querySelectorAll('.menu-admin');
         const citoyenMenus = document.querySelectorAll('.menu-citoyen');
 
         console.log('Admin menus found:', adminMenus.length);
         console.log('Citoyen menus found:', citoyenMenus.length);
 
-        // Show menu items based on user role
+        // Show/hide menus based on role
         if (userRole === 'ADMINISTRATEUR') {
             console.log('Showing admin menus...');
             adminMenus.forEach(menu => {
                 menu.style.display = 'block';
                 console.log('- Showed:', menu.id);
             });
+            citoyenMenus.forEach(menu => menu.style.display = 'none');
         } else if (userRole === 'CITOYEN') {
             console.log('Showing citoyen menus...');
             citoyenMenus.forEach(menu => {
                 menu.style.display = 'block';
                 console.log('- Showed:', menu.id);
             });
+            adminMenus.forEach(menu => menu.style.display = 'none');
         } else if (userRole === 'AGENT_MUNICIPAL') {
-            console.log('Showing admin menus for municipal agent...');
+            console.log('Showing agent municipal menus...');
+            // Agents can see some admin menus
             adminMenus.forEach(menu => {
-                // Show incidents and notifications for agents too
-                if (menu.id === 'menu-incidents' || menu.id === 'menu-notifications') {
+                if (menu.id === 'menu-notifications') {
                     menu.style.display = 'block';
                 }
             });
+            citoyenMenus.forEach(menu => menu.style.display = 'none');
         } else {
             console.warn('Unknown role:', userRole);
+            adminMenus.forEach(menu => menu.style.display = 'none');
+            citoyenMenus.forEach(menu => menu.style.display = 'none');
         }
 
         console.log('Menu rendering complete!');

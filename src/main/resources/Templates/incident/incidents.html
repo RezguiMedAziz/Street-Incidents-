@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main}">
+<head>
+    <title>Incidents - Street Incidents</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Custom CSS -->
+    <link th:href="@{/css/incidents.css}" rel="stylesheet">
+    <style>
+        #map {
+            height: 400px;
+            width: 100%;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        .form-card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            margin-bottom: 30px;
+        }
+
+        .form-header {
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .form-header h2 {
+            color: #2C5282;
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .form-card label {
+            display: block;
+            color: #4A5568;
+            font-weight: 600;
+            margin-bottom: 8px;
+            margin-top: 15px;
+        }
+
+        .form-card input[type="text"],
+        .form-card input[type="number"],
+        .form-card input[type="email"],
+        .form-card textarea,
+        .form-card select,
+        .form-card input[type="file"] {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .form-card input:focus,
+        .form-card textarea:focus,
+        .form-card select:focus {
+            border-color: #3182CE;
+            box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+            outline: none;
+        }
+
+        .form-card textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-card button[type="submit"] {
+            background: linear-gradient(135deg, #3182CE 0%, #4299E1 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .form-card button[type="submit"]:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(49, 130, 206, 0.3);
+        }
+
+        .text-muted {
+            color: #6b7280;
+            font-size: 13px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="container-fluid">
+        <div class="form-card">
+            <div th:replace="~{fragments/alerts :: alert}"></div>
+
+            <div class="form-header">
+                <h2><i class="fas fa-plus-circle me-2"></i>Déclarer un incident</h2>
+            </div>
+
+            <form th:action="@{/citizen/incidents}" method="post" enctype="multipart/form-data">
+
+                <label for="titre">Titre</label>
+                <input type="text" id="titre" name="titre" placeholder="Entrez le titre" required>
+
+                <label for="description">Description</label>
+                <textarea id="description" name="description" placeholder="Décrivez l'incident"></textarea>
+
+                <label for="priorite">Priorité</label>
+                <select id="priorite" name="priorite" class="form-select" required>
+                    <option value="" disabled selected>Sélectionnez une priorité</option>
+                    <option th:each="p : ${priorites}"
+                            th:value="${p.name()}"
+                            th:text="${p.label}">
+                    </option>
+                </select>
+
+                <label for="categorie">Catégorie</label>
+                <select id="categorie" name="categorie" class="form-select" required>
+                    <option value="" disabled selected>Sélectionnez une catégorie</option>
+                    <option th:each="c : ${categories}"
+                            th:value="${c.name()}"
+                            th:text="${c.label}">
+                    </option>
+                </select>
+
+                <label for="gouvernoratId">Gouvernorat</label>
+                <input type="text" id="gouvernoratId" name="gouvernorat">
+
+                <label for="municipaliteId">Municipalité</label>
+                <input type="text" id="municipaliteId" name="municipalite">
+
+                <label>Localisation sur la carte</label>
+                <div id="map"></div>
+
+                <label for="latitude">Latitude</label>
+                <input type="number" id="latitude" step="any" name="latitude" placeholder="ex: 36.8065">
+
+                <label for="longitude">Longitude</label>
+                <input type="number" id="longitude" step="any" name="longitude" placeholder="ex: 10.1815">
+
+                <label for="photosFiles">Photos (optionnel)</label>
+                <input type="file"
+                       id="photosFiles"
+                       name="photosFiles"
+                       class="form-control"
+                       multiple
+                       accept="image/*">
+                <small class="text-muted">Vous pouvez sélectionner plusieurs photos</small>
+
+                <button type="submit">
+                    <i class="fas fa-paper-plane me-2"></i>Envoyer
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
+    <!-- Custom JS -->
+    <script th:src="@{/js/incidents.js}"></script>
+</div>
+</body>
+</html>

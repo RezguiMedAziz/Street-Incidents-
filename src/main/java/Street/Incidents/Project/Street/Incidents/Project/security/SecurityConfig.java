@@ -11,6 +11,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -30,7 +31,10 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(AbstractHttpConfigurer::disable)
+                // Protection CSRF activée
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                )
                 .authorizeHttpRequests(auth -> auth
                         // Public web pages and routes
                         // ========================
@@ -84,7 +88,7 @@ public class SecurityConfig {
                         // ✅ Web Pages
                         .requestMatchers(
                                 "/",                            // GET: Home redirect
-                                "/home",                        // GET: Home page
+                                "/layouts/main",                        // GET: Home page
                                 "/login-page",                  // GET: Login page
                                 "/register-page",               // GET: Register page
                                 "/logout",                      // GET/POST: Logout
