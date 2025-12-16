@@ -1,10 +1,12 @@
 package Street.Incidents.Project.Street.Incidents.Project.entities;
 
-import Street.Incidents.Project.Street.Incidents.Project.entities.Enums.CategorieIncident;
+import Street.Incidents.Project.Street.Incidents.Project.entities.Enums.Departement;
+import Street.Incidents.Project.Street.Incidents.Project.entities.Enums.Priorite;
 import Street.Incidents.Project.Street.Incidents.Project.entities.Enums.StatutIncident;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -19,11 +21,12 @@ public class Incident {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+
     private String titre;
     private String description;
 
     @Enumerated(EnumType.STRING)
-    private CategorieIncident categorie;
+    private Departement categorie;
 
     @Enumerated(EnumType.STRING)
     private StatutIncident statut;
@@ -34,6 +37,11 @@ public class Incident {
     private Double latitude;
     private Double longitude;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Priorite priorite = Priorite.MOYENNE;
+
+
     @ManyToOne
     @JoinColumn(name = "declarant_id")
     private User declarant;
@@ -42,10 +50,18 @@ public class Incident {
     @JoinColumn(name = "agent_id")
     private User agent;
 
-    @ManyToOne
+    @ManyToOne(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinColumn(name = "quartier_id")
     private Quartier quartier;
 
-    @OneToMany(mappedBy = "incident")
-    private List<Photo> photos;
+    @OneToMany(mappedBy = "incident", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<Photo> photos = new ArrayList<>();
+
+    // Méthode utilitaire pour ajouter une photo
+    public void addPhoto(Photo photo) {
+        photos.add(photo);
+        photo.setIncident(this);
+    }
+
 }

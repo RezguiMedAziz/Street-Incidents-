@@ -20,7 +20,7 @@ public class Photo {
     private Long taille;
     private String cheminStockage;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "incident_id")
     private Incident incident;
 }

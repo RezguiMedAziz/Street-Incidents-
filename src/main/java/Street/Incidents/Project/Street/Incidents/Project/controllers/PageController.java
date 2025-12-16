@@ -87,6 +87,26 @@ public class PageController {
 
     }
 
+    @GetMapping("/incidents")
+    public String incidentsPage(HttpServletRequest request, Model model) {
+        HttpSession session = request.getSession(false);
+
+        log.info("=== INCIDENTS PAGE ACCESS ===");
+
+        if (session == null || session.getAttribute("token") == null) {
+            log.warn("No session or token found, redirecting to login");
+            return "redirect:/login-page";
+        }
+
+        // Add user info to model from session
+        model.addAttribute("userEmail", session.getAttribute("userEmail"));
+        model.addAttribute("userName", session.getAttribute("userName"));
+        model.addAttribute("userRole", session.getAttribute("userRole"));
+
+        log.info("Incidents page access granted for: {}", session.getAttribute("userEmail"));
+        return "incident/incidents";
+    }
+
     @GetMapping("/login-page")
     public String loginPage(@RequestParam(value = "error", required = false) String error,
                             @RequestParam(value = "logout", required = false) String logout,
