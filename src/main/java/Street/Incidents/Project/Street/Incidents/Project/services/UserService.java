@@ -1,9 +1,8 @@
 package Street.Incidents.Project.Street.Incidents.Project.services;
 
-import Street.Incidents.Project.Street.Incidents.Project.DAOs.AuthResponse;
-import Street.Incidents.Project.Street.Incidents.Project.DAOs.LoginRequest;
-import Street.Incidents.Project.Street.Incidents.Project.DAOs.RegisterRequest;
+import Street.Incidents.Project.Street.Incidents.Project.DAOs.*;
 import Street.Incidents.Project.Street.Incidents.Project.entities.User;
+import Street.Incidents.Project.Street.Incidents.Project.entities.Enums.Role;
 import Street.Incidents.Project.Street.Incidents.Project.repositories.UserRepository;
 import Street.Incidents.Project.Street.Incidents.Project.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -31,6 +31,8 @@ public class UserService {
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
     private final EmailService emailService;
+
+    // Existing methods for Registration, Email Verification, etc.
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -70,7 +72,6 @@ public class UserService {
             // Don't throw - user is created, they can request verification email later
         }
 
-        // Don't generate JWT token yet - user needs to verify email first
         return AuthResponse.builder()
                 .email(user.getEmail())
                 .nom(user.getNom())
@@ -89,14 +90,11 @@ public class UserService {
                     return new RuntimeException("Invalid verification code");
                 });
 
-
-        // Check if code is expired
         if (user.getVerificationCodeExpiry().isBefore(LocalDateTime.now())) {
             log.error("Verification code expired for user: {}", user.getEmail());
             throw new RuntimeException("Verification code has expired");
         }
 
-        // Verify email
         user.setEmailVerified(true);
         user.setVerificationCode(null); // Clear verification code
         user.setVerificationCodeExpiry(null);
@@ -104,7 +102,6 @@ public class UserService {
 
         log.info("Email verified successfully for user: {}", user.getEmail());
 
-        // Send welcome email
         try {
             String fullName = user.getPrenom() + " " + user.getNom();
             emailService.sendWelcomeEmail(user.getEmail(), fullName);
@@ -130,7 +127,6 @@ public class UserService {
             throw new RuntimeException("Email already verified");
         }
 
-        // Generate new verification code
         String newVerificationCode = UUID.randomUUID().toString();
         LocalDateTime newExpiryDate = LocalDateTime.now().plusHours(24);
 
@@ -138,7 +134,6 @@ public class UserService {
         user.setVerificationCodeExpiry(newExpiryDate);
         userRepository.save(user);
 
-        // Send verification email
         String fullName = user.getPrenom() + " " + user.getNom();
         emailService.sendVerificationEmail(email, fullName, newVerificationCode);
 
@@ -150,34 +145,26 @@ public class UserService {
         log.info("Login attempt for email: {}", request.getEmail());
 
         try {
-            // First, check if user exists
             User user = userRepository.findByEmail(request.getEmail())
                     .orElseThrow(() -> {
                         log.error("User not found: {}", request.getEmail());
                         return new RuntimeException("User not found");
                     });
 
-            log.info("User found: {}, active: {}, email verified: {}",
-                    request.getEmail(), user.isActif(), user.isEmailVerified());
+            log.info("User found: {}, active: {}, email verified: {}", request.getEmail(), user.isActif(), user.isEmailVerified());
 
-            // Check if email is verified
             if (!user.isEmailVerified()) {
                 log.warn("Login attempt with unverified email: {}", request.getEmail());
-                throw new RuntimeException("Please verify your email first. Check your inbox or request a new verification email.");
+                throw new RuntimeException("Please verify your email first.");
             }
 
-            // Check if account is active
             if (!user.isActif()) {
                 log.warn("Login attempt with inactive account: {}", request.getEmail());
-                throw new RuntimeException("Account is not active. Please contact support.");
+                throw new RuntimeException("Account is not active.");
             }
 
-            // Try to authenticate
             Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            request.getEmail(),
-                            request.getMotDePasse()
-                    )
+                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getMotDePasse())
             );
 
             log.info("Authentication successful for: {}", request.getEmail());
@@ -206,5 +193,256 @@ public class UserService {
             log.error("Unexpected error during login for {}: {}", request.getEmail(), e.getMessage());
             throw new RuntimeException("Login failed: " + e.getMessage());
         }
+    }
+
+    //  User update and consult
+
+    public User getUserByEmail(String email) {
+        // Implementation to get user by email
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return (user);
+    }
+
+    public void updateUserProfile(String email, ProfileUpdateRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Update user fields
+        if (request.getNom() != null && !request.getNom().isEmpty()) {
+            user.setNom(request.getNom());
+        }
+        if (request.getPrenom() != null && !request.getPrenom().isEmpty()) {
+            user.setPrenom(request.getPrenom());
+        }
+        if (request.getEmail() != null && !request.getEmail().isEmpty() && !request.getEmail().equals(email)) {
+            // Check if new email is not taken
+            if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+                throw new RuntimeException("Email already in use");
+            }
+            user.setEmail(request.getEmail());
+        }
+
+        userRepository.save(user);
+    }
+
+    // ========================================
+    // FORGET PASSWORD METHODS
+    // ========================================
+
+    @Transactional
+    public boolean initiatePasswordReset(String email) {
+        log.info("Initiating password reset for email: {}", email);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> {
+                    log.error("User not found for password reset: {}", email);
+                    return new RuntimeException("If this email exists, a reset link will be sent");
+                });
+
+        // Generate reset token
+        String resetToken = UUID.randomUUID().toString();
+        LocalDateTime tokenExpiry = LocalDateTime.now().plusHours(2); // Token valid for 2 hours
+
+        user.setPasswordResetToken(resetToken);
+        user.setPasswordResetTokenExpiry(tokenExpiry);
+        userRepository.save(user);
+
+        // Send reset email
+        try {
+            String fullName = user.getPrenom() + " " + user.getNom();
+            emailService.sendPasswordResetEmail(email, fullName, resetToken);
+            log.info("Password reset email sent to: {}", email);
+            return true;
+        } catch (Exception e) {
+            log.error("Failed to send password reset email: {}", e.getMessage());
+            throw new RuntimeException("Failed to send reset email");
+        }
+    }
+
+    @Transactional
+    public boolean validateResetToken(String token) {
+        log.info("Validating reset token: {}", token);
+
+        User user = userRepository.findByPasswordResetToken(token)
+                .orElseThrow(() -> {
+                    log.error("Invalid reset token: {}", token);
+                    return new RuntimeException("Invalid or expired reset token");
+                });
+
+        // Check if token is expired
+        if (user.getPasswordResetTokenExpiry().isBefore(LocalDateTime.now())) {
+            log.error("Reset token expired for user: {}", user.getEmail());
+            user.setPasswordResetToken(null);
+            user.setPasswordResetTokenExpiry(null);
+            userRepository.save(user);
+            throw new RuntimeException("Reset token has expired");
+        }
+
+        return true;
+    }
+
+    @Transactional
+    public boolean resetPassword(ResetPasswordRequest request) {
+        log.info("Resetting password with token: {}", request.getToken());
+
+        User user = userRepository.findByPasswordResetToken(request.getToken())
+                .orElseThrow(() -> {
+                    log.error("Invalid reset token: {}", request.getToken());
+                    return new RuntimeException("Invalid or expired reset token");
+                });
+
+        // Check if token is expired
+        if (user.getPasswordResetTokenExpiry().isBefore(LocalDateTime.now())) {
+            log.error("Reset token expired for user: {}", user.getEmail());
+            throw new RuntimeException("Reset token has expired");
+        }
+
+        // Update password
+        user.setMotDePasse(passwordEncoder.encode(request.getNewPassword()));
+        user.setPasswordResetToken(null);
+        user.setPasswordResetTokenExpiry(null);
+        userRepository.save(user);
+
+        log.info("Password reset successful for user: {}", user.getEmail());
+
+        // Send confirmation email
+        try {
+            String fullName = user.getPrenom() + " " + user.getNom();
+            emailService.sendPasswordChangeConfirmationEmail(user.getEmail(), fullName);
+        } catch (Exception e) {
+            log.error("Failed to send password change confirmation email: {}", e.getMessage());
+        }
+
+        return true;
+    }
+
+    // ========================================
+    // CHANGE PASSWORD METHODS
+    // ========================================
+
+    @Transactional
+    public boolean initiatePasswordChange(String email, ChangePasswordRequest request) {
+        log.info("Initiating password change for email: {}", email);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> {
+                    log.error("User not found: {}", email);
+                    return new RuntimeException("User not found");
+                });
+
+        // Verify current password
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getMotDePasse())) {
+            log.error("Current password incorrect for user: {}", email);
+            throw new RuntimeException("Current password is incorrect");
+        }
+
+        // Generate change token
+        String changeToken = UUID.randomUUID().toString();
+        LocalDateTime tokenExpiry = LocalDateTime.now().plusHours(2);
+
+        user.setPasswordChangeToken(changeToken);
+        user.setPasswordChangeTokenExpiry(tokenExpiry);
+        user.setTemporaryNewPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        // Send confirmation email
+        try {
+            String fullName = user.getPrenom() + " " + user.getNom();
+            emailService.sendPasswordChangeVerificationEmail(email, fullName, changeToken);
+            log.info("Password change verification email sent to: {}", email);
+            return true;
+        } catch (Exception e) {
+            log.error("Failed to send password change verification email: {}", e.getMessage());
+            throw new RuntimeException("Failed to send verification email");
+        }
+    }
+
+    @Transactional
+    public boolean confirmPasswordChange(String token) {
+        log.info("Confirming password change with token: {}", token);
+
+        User user = userRepository.findByPasswordChangeToken(token)
+                .orElseThrow(() -> {
+                    log.error("Invalid password change token: {}", token);
+                    return new RuntimeException("Invalid or expired token");
+                });
+
+        // Check if token is expired
+        if (user.getPasswordChangeTokenExpiry().isBefore(LocalDateTime.now())) {
+            log.error("Password change token expired for user: {}", user.getEmail());
+            user.setPasswordChangeToken(null);
+            user.setPasswordChangeTokenExpiry(null);
+            user.setTemporaryNewPassword(null);
+            userRepository.save(user);
+            throw new RuntimeException("Verification token has expired");
+        }
+
+        // Update password with the temporary one
+        user.setMotDePasse(user.getTemporaryNewPassword());
+        user.setPasswordChangeToken(null);
+        user.setPasswordChangeTokenExpiry(null);
+        user.setTemporaryNewPassword(null);
+        userRepository.save(user);
+
+        log.info("Password change confirmed successfully for user: {}", user.getEmail());
+
+        // Send confirmation email
+        try {
+            String fullName = user.getPrenom() + " " + user.getNom();
+            emailService.sendPasswordChangeCompletedEmail(user.getEmail(), fullName);
+        } catch (Exception e) {
+            log.error("Failed to send password change completion email: {}", e.getMessage());
+        }
+
+        return true;
+    }
+
+    // Admin methods for managing users
+
+    @Transactional
+    public User createUser(String email, String password, Role role) {
+        log.info("Creating user with email: {}", email);
+
+        if (userRepository.existsByEmail(email)) {
+            throw new RuntimeException("Email already exists");
+        }
+
+        User user = new User();
+        user.setEmail(email);
+        user.setPassword(passwordEncoder.encode(password));
+        user.setRole(role);
+        user.setActif(true);
+
+        userRepository.save(user);
+        log.info("User created successfully: {}", email);
+
+        return user;
+    }
+
+    @Transactional
+    public boolean userExistsByEmail(String email) {
+        return userRepository.existsByEmail(email);
+    }
+
+    @Transactional
+    public User changeUserRole(Long userId, Role role) {
+        log.info("Changing role for user ID: {}", userId);
+
+        User user = userRepository.findById(userId).orElseThrow(() -> {
+            log.error("User not found with ID: {}", userId);
+            return new RuntimeException("User not found");
+        });
+
+        user.setRole(role);
+        userRepository.save(user);
+        log.info("Role changed for user ID: {}", userId);
+
+        return user;
+    }
+
+    @Transactional
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
     }
 }

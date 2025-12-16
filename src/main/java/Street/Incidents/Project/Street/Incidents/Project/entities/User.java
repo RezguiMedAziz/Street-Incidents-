@@ -13,7 +13,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "users")
-@Data
+@Data  // Lombok annotation to automatically generate getters and setters
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -30,13 +30,28 @@ public class User implements UserDetails {
     private String email;
 
     @Column(nullable = false)
-    private String motDePasse;
+    private String motDePasse;  // Password field (motDePasse in French)
 
     @Enumerated(EnumType.STRING)
-    private Role role;
+    private Role role;  // User role (admin, agent, etc.)
 
     @Builder.Default
     private boolean actif = false; // ✅ Change to false - user must verify email first
+    @Column(name = "password_reset_token")
+    private String passwordResetToken;
+
+    @Column(name = "password_reset_token_expiry")
+    private LocalDateTime passwordResetTokenExpiry;
+
+    @Column(name = "password_change_token")
+    private String passwordChangeToken;
+
+    @Column(name = "password_change_token_expiry")
+    private LocalDateTime passwordChangeTokenExpiry;
+
+    @Column(name = "temporary_new_password")
+    private String temporaryNewPassword;
+
 
     @Column(name = "verification_code", length = 64)
     private String verificationCode;
@@ -91,4 +106,8 @@ public class User implements UserDetails {
     public boolean isEnabled() {
         return actif && emailVerified; // ✅ User must be both active AND email verified
     }
+    public void setPassword(String password) {
+    this.motDePasse = password;
+}
+
 }

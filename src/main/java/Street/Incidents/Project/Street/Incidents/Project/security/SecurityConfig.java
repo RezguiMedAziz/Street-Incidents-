@@ -15,6 +15,7 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.ui.Model;
 
 import java.util.List;
 
@@ -35,10 +36,15 @@ public class SecurityConfig {
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 )
                 .authorizeHttpRequests(auth -> auth
+                        // Public web pages and routes
+                        // ========================
+                        // PUBLIC PAGES - NO AUTH REQUIRED
+                        // ========================
+
                         // Public web pages
                         .requestMatchers("/", "/home", "/login-page", "/register-page").permitAll()
-                        // Emails
 
+                        // Email Verification Pages
                         .requestMatchers(
                                 "/verify-email-page",           // GET: Verification form page
                                 "/verify-email",                // GET: Email link verification
@@ -48,14 +54,35 @@ public class SecurityConfig {
                                 "/resend-verification-form"     // POST: Resend form submission
                         ).permitAll()
 
-                        // ✅ API Endpoints (REST)
+                        // Public API Endpoints (authentication and registration)
                         .requestMatchers(
                                 "/api/auth/verify-email",       // GET/POST: Verify email API
                                 "/api/auth/resend-verification" // POST: Resend verification API
                         ).permitAll()
 
                         // ========================
-                        // AUTHENTICATION ENDPOINTS
+                        // FORGET PASSWORD ENDPOINTS - NO AUTH REQUIRED
+                        // ========================
+                        .requestMatchers(
+                                "/forgot-password-page",        // GET: Forgot password page
+                                "/forgot-password-form",        // POST: Submit forgot password
+                                "/verify-reset-token-page",     // GET: Verify reset token page
+                                "/verify-reset-token-form",     // POST: Submit token verification
+                                "/reset-password-page",         // GET: Reset password page
+                                "/reset-password-form",         // POST: Submit new password
+                                "/confirm-password-change"      // GET: Confirm password change from email
+                        ).permitAll()
+
+                        // ========================
+                        // PASSWORD CHANGE SUCCESS PAGES - NO AUTH REQUIRED
+                        // ========================
+                        .requestMatchers(
+                                "/password-change-success",     // GET: Password change success page
+                                "/password-change-error"        // GET: Password change error page
+                        ).permitAll()
+
+                        // ========================
+                        // FORGET PASSWORD ENDPOINTS - NO AUTH REQUIRED
                         // ========================
 
                         // ✅ Web Pages
@@ -104,23 +131,6 @@ public class SecurityConfig {
                         ).permitAll()
 
                         // ========================
-                        // DEBUG & TEST ENDPOINTS
-                        // ========================
-                        .requestMatchers(
-                                "/debug-session",               // Debug session
-                                "/debug-logout",                // Debug logout
-                                "/debug-verification",          // Debug verification
-                                "/test.html",                   // Test page
-                                "/test-simple.html",            // Simple test
-                                "/test-logout.html",            // Logout test
-                                "/test-logout-simple.html",     // Simple logout test
-                                "/test-session.html",           // Session test
-                                "/test-session2.html",          // Session test 2
-                                "/test-static.html",            // Static files test
-                                "/test-auth"                    // Auth test
-                        ).permitAll()
-
-                        // ========================
                         // ERROR PAGES
                         // ========================
                         .requestMatchers(
@@ -132,10 +142,16 @@ public class SecurityConfig {
                         // PROTECTED ENDPOINTS
                         // ========================
                         // Everything else needs authentication
-                        .anyRequest().authenticated()
+                        .requestMatchers("/admin/**").hasRole("ADMINISTRATEUR")  // Admin routes secured
+                        .anyRequest().authenticated()  // Any other request needs authentication
+                )
+                .formLogin(form -> form
+                        .loginPage("/login-page")  // Custom login page
+                        .defaultSuccessUrl("/admin/dashboard", true)  // Redirect to the admin dashboard after login
+                        .failureUrl("/login-page?error=true")  // Optional: Redirect on failure
                 )
                 .logout(logout -> logout
-                        .logoutUrl("/perform-logout") // Use this URL for Spring Security logout
+                        .logoutUrl("/perform-logout") // URL for Spring Security logout
                         .logoutSuccessUrl("/login-page?logout=true")
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID")
@@ -143,8 +159,8 @@ public class SecurityConfig {
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.ALWAYS)
-                        .sessionFixation().migrateSession() // ✅ Important: Preserve session
-                        .maximumSessions(1) // ✅ Allow only one session per user
+                        .sessionFixation().migrateSession() // Preserve session on login
+                        .maximumSessions(1) // Only one session per user
                         .maxSessionsPreventsLogin(false)
                 )
                 .authenticationProvider(authenticationProvider)
