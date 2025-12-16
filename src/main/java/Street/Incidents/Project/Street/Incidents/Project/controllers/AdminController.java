@@ -30,10 +30,10 @@ public class AdminController {
     @GetMapping("/home")
     public String adminHome(HttpSession session, Model model) {
         log.info("Loading admin home page");
-        
+
         Object roleObj = session.getAttribute("userRole");
         String userRole = null;
-        
+
         if (roleObj instanceof Role) {
             userRole = ((Role) roleObj).name();
         } else if (roleObj instanceof String) {
@@ -41,18 +41,18 @@ public class AdminController {
         } else {
             userRole = "GUEST";
         }
-        
+
         String userName = (String) session.getAttribute("userName");
         String userEmail = (String) session.getAttribute("userEmail");
-        
+
         model.addAttribute("userRole", userRole);
         model.addAttribute("userName", userName);
         model.addAttribute("userEmail", userEmail);
         model.addAttribute("activePage", "dashboard");
         model.addAttribute("pageTitle", "Admin Dashboard");
-        
+
         log.info("Admin home loaded for user: {} ({})", userName, userRole);
-        
+
         return "admin/home";
     }
 
@@ -65,16 +65,16 @@ public class AdminController {
             Model model,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "5") int size,
-            @RequestParam(value = "roleFilter", required = false) String roleFilter, // ✅ NEW: Role filter
+            @RequestParam(value = "roleFilter", required = false) String roleFilter,
             @RequestParam(value = "success", required = false) String success,
             @RequestParam(value = "error", required = false) String error) {
-        
+
         log.info("Loading admin dashboard - page: {}, size: {}, roleFilter: {}", page, size, roleFilter);
-        
+
         // Session handling
         Object roleObj = session.getAttribute("userRole");
         String userRole = null;
-        
+
         if (roleObj instanceof Role) {
             userRole = ((Role) roleObj).name();
             log.debug("User role retrieved as enum: {}", userRole);
@@ -85,23 +85,22 @@ public class AdminController {
             log.warn("User role is null or unexpected type");
             userRole = "GUEST";
         }
-        
+
         String userName = (String) session.getAttribute("userName");
         String userEmail = (String) session.getAttribute("userEmail");
-        
+
         model.addAttribute("userRole", userRole);
         model.addAttribute("userName", userName);
         model.addAttribute("userEmail", userEmail);
         model.addAttribute("activePage", "users");
         model.addAttribute("pageTitle", "Manage Users");
-        
+
         log.info("Dashboard loaded for user: {} ({})", userName, userRole);
 
         // Fetch paginated users sorted by ID with optional role filter
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
         Page<User> userPage;
-        
-        // ✅ NEW: Filter by role if provided
+
         if (roleFilter != null && !roleFilter.isEmpty() && !roleFilter.equals("ALL")) {
             try {
                 Role role = Role.valueOf(roleFilter);
@@ -114,14 +113,14 @@ public class AdminController {
         } else {
             userPage = adminService.getUsersPage(pageable);
         }
-        
+
         model.addAttribute("userPage", userPage);
         model.addAttribute("users", userPage.getContent());
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", userPage.getTotalPages());
         model.addAttribute("totalElements", userPage.getTotalElements());
         model.addAttribute("pageSize", size);
-        model.addAttribute("roleFilter", roleFilter); // ✅ NEW: Pass filter back to view
+        model.addAttribute("roleFilter", roleFilter);
 
         // Add all Role enum values for dropdowns
         model.addAttribute("allRoles", Role.values());
@@ -145,19 +144,14 @@ public class AdminController {
             @RequestParam(required = false) String nom,
             @RequestParam(required = false) String prenom,
             RedirectAttributes redirectAttributes) {
-        
+
         log.info("Request to create user with email: {} and role: {}", email, role);
-        
+
         try {
-            User user = adminService.createUser(email, password, role);
-            
-            if ((nom != null && !nom.isEmpty()) || (prenom != null && !prenom.isEmpty())) {
-                String finalNom = (nom != null && !nom.isEmpty()) ? nom : user.getNom();
-                String finalPrenom = (prenom != null && !prenom.isEmpty()) ? prenom : user.getPrenom();
-                adminService.updateUser(user.getId(), finalNom, finalPrenom, user.getEmail(), user.getRole());
-            }
-            
-            redirectAttributes.addFlashAttribute("success", "User created successfully.");
+            User user = adminService.createUser(email, password, role, nom, prenom);
+
+            redirectAttributes.addFlashAttribute("success",
+                    "User created successfully. Account credentials have been sent to " + email + ".");
             log.info("User created successfully: {}", email);
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
@@ -166,7 +160,7 @@ public class AdminController {
             redirectAttributes.addFlashAttribute("error", "An error occurred while creating the user.");
             log.error("Unexpected error while creating user: {}", e.getMessage(), e);
         }
-        
+
         return "redirect:/admin/dashboard";
     }
 
@@ -177,13 +171,24 @@ public class AdminController {
             @RequestParam(required = false) String prenom,
             @RequestParam String email,
             @RequestParam Role role,
+            @RequestParam(required = false) String newPassword,
+            @RequestParam(defaultValue = "false") boolean sendNotification,
             RedirectAttributes redirectAttributes) {
-        
-        log.info("Request to update user ID: {}", userId);
-        
+
+        log.info("Request to update user ID: {} with notification: {}", userId, sendNotification);
+
         try {
-            adminService.updateUser(userId, nom, prenom, email, role);
-            redirectAttributes.addFlashAttribute("success", "User updated successfully.");
+            // Use the new method that supports email notifications
+            User updatedUser = adminService.updateUserWithNotification(
+                    userId, nom, prenom, email, role, newPassword, sendNotification
+            );
+
+            String successMessage = "User updated successfully.";
+            if (sendNotification) {
+                successMessage += " Notification email has been sent to " + email + ".";
+            }
+
+            redirectAttributes.addFlashAttribute("success", successMessage);
             log.info("User updated successfully with ID: {}", userId);
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
@@ -192,22 +197,49 @@ public class AdminController {
             redirectAttributes.addFlashAttribute("error", "An error occurred while updating the user.");
             log.error("Unexpected error while updating user: {}", e.getMessage(), e);
         }
-        
+
         return "redirect:/admin/dashboard";
     }
 
     @PostMapping("/change-role")
     public String changeRole(
             @RequestParam Long userId,
-            @RequestParam Role role,
+            @RequestParam Role newRole,
+            @RequestParam(defaultValue = "false") boolean sendNotification,
             RedirectAttributes redirectAttributes) {
-        
-        log.info("Request to change role for user ID: {} to {}", userId, role);
-        
+
+        log.info("Request to change role for user ID: {} to {} with notification: {}",
+                userId, newRole, sendNotification);
+
         try {
-            adminService.changeUserRole(userId, role);
-            redirectAttributes.addFlashAttribute("success", "User role updated successfully.");
-            log.info("User role updated successfully for user ID: {}", userId);
+            // Get the user first to get current details
+            User user = adminService.getUserById(userId)
+                    .orElseThrow(() -> new IllegalArgumentException("User not found."));
+
+            // Check if role is actually changing
+            if (!user.getRole().equals(newRole)) {
+                // Update the user with notification
+                User updatedUser = adminService.updateUserWithNotification(
+                        userId,
+                        user.getNom(),
+                        user.getPrenom(),
+                        user.getEmail(),
+                        newRole,
+                        null, // No password change
+                        sendNotification
+                );
+
+                String successMessage = "User role updated successfully.";
+                if (sendNotification) {
+                    successMessage += " Notification email has been sent to " + user.getEmail() + ".";
+                }
+
+                redirectAttributes.addFlashAttribute("success", successMessage);
+                log.info("User role updated successfully for user ID: {}", userId);
+            } else {
+                redirectAttributes.addFlashAttribute("success", "User already has this role.");
+                log.info("User already has the requested role: {}", newRole);
+            }
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
             log.error("Failed to change user role: {}", e.getMessage());
@@ -215,7 +247,7 @@ public class AdminController {
             redirectAttributes.addFlashAttribute("error", "An error occurred while updating the user role.");
             log.error("Unexpected error while changing user role: {}", e.getMessage(), e);
         }
-        
+
         return "redirect:/admin/dashboard";
     }
 
@@ -223,9 +255,9 @@ public class AdminController {
     public String deleteUser(
             @RequestParam Long userId,
             RedirectAttributes redirectAttributes) {
-        
+
         log.info("Request to delete user with ID: {}", userId);
-        
+
         try {
             adminService.deleteUser(userId);
             redirectAttributes.addFlashAttribute("success", "User deleted successfully.");
@@ -237,7 +269,7 @@ public class AdminController {
             redirectAttributes.addFlashAttribute("error", "An error occurred while deleting the user.");
             log.error("Unexpected error while deleting user: {}", e.getMessage(), e);
         }
-        
+
         return "redirect:/admin/dashboard";
     }
 }

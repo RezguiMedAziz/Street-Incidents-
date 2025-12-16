@@ -51,7 +51,7 @@ public class ProfileController {
         String userName = (String) session.getAttribute("userName");
         String userEmail = (String) session.getAttribute("userEmail");
 
-        // ✅ Add session attributes to model - SAME AS ADMIN CONTROLLER
+        // ✅ CRITICAL: Add ALL session attributes to model
         model.addAttribute("userRole", userRole);
         model.addAttribute("userName", userName);
         model.addAttribute("userEmail", userEmail);
@@ -76,6 +76,8 @@ public class ProfileController {
             model.addAttribute("error", "Unable to load profile details");
         }
 
+        // ✅ Make sure this returns the correct template
+        // But actually, since we're using layout:decorate, we should return just "profile"
         return "profile";
     }
 
@@ -105,8 +107,10 @@ public class ProfileController {
             }
 
             // Update name in session
-            String newFullName = profileUpdateRequest.getNom() + " " + profileUpdateRequest.getPrenom();
-            session.setAttribute("userName", newFullName);
+            if (profileUpdateRequest.getNom() != null && profileUpdateRequest.getPrenom() != null) {
+                String newFullName = profileUpdateRequest.getNom() + " " + profileUpdateRequest.getPrenom();
+                session.setAttribute("userName", newFullName);
+            }
 
             log.info("Profile updated successfully for user: {}", currentEmail);
             redirectAttributes.addFlashAttribute("successMessage", "Profile updated successfully!");
