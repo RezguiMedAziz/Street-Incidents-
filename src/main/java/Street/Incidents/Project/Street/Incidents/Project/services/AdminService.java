@@ -22,6 +22,7 @@ public class AdminService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
     /**
      * Get paginated users from the database
@@ -32,7 +33,7 @@ public class AdminService {
     }
 
     /**
-     * ✅ Get users filtered by role with pagination
+     * Get users filtered by role with pagination
      */
     public Page<User> getUsersByRole(Role role, Pageable pageable) {
         log.info("Fetching users with role: {} and pagination: {}", role, pageable);
@@ -48,18 +49,32 @@ public class AdminService {
     }
 
     /**
-     * Create a new user with specified role
+     * Create a new user with specified role and send credentials email
      */
-    public User createUser(String email, String password, Role role) {
+    public User createUser(String email, String password, Role role, String nom, String prenom) {
         log.info("Creating user with email: {} and role: {}", email, role);
-        
+
         if (userRepository.existsByEmail(email)) {
             log.warn("User creation failed - email already exists: {}", email);
             throw new IllegalArgumentException("User with this email already exists.");
         }
 
+        // Validate that password is provided
+        if (password == null || password.isEmpty()) {
+            log.warn("User creation failed - password is required");
+            throw new IllegalArgumentException("Password is required.");
+        }
+
+        // Validate password strength
+        if (password.length() < 6) {
+            log.warn("User creation failed - password must be at least 6 characters");
+            throw new IllegalArgumentException("Password must be at least 6 characters long.");
+        }
+
         User user = User.builder()
                 .email(email)
+                .nom(nom)
+                .prenom(prenom)
                 .motDePasse(passwordEncoder.encode(password))
                 .role(role)
                 .actif(true)  // Admin-created users are active by default
@@ -68,8 +83,33 @@ public class AdminService {
 
         User savedUser = userRepository.save(user);
         log.info("User created successfully with ID: {} and role: {}", savedUser.getId(), role);
-        
+
+        // Send account credentials email
+        try {
+            String fullName = (prenom != null && !prenom.isEmpty() ? prenom + " " : "") +
+                    (nom != null && !nom.isEmpty() ? nom : "User");
+
+            emailService.sendAccountCredentials(
+                    email,
+                    fullName,
+                    password,  // Send the actual password typed by admin
+                    role.name()
+            );
+
+            log.info("Account credentials email sent to: {}", email);
+        } catch (Exception e) {
+            log.error("Failed to send credentials email to {}: {}", email, e.getMessage());
+            // Don't throw - user is created, just log the error
+        }
+
         return savedUser;
+    }
+
+    /**
+     * Create a new user with minimal info (backward compatibility)
+     */
+    public User createUser(String email, String password, Role role) {
+        return createUser(email, password, role, null, null);
     }
 
     /**
@@ -98,7 +138,7 @@ public class AdminService {
      */
     public User changeUserRole(Long userId, Role newRole) {
         log.info("Changing role for user ID: {} to {}", userId, newRole);
-        
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> {
                     log.error("User not found with ID: {}", userId);
@@ -107,7 +147,7 @@ public class AdminService {
 
         user.setRole(newRole);
         User updatedUser = userRepository.save(user);
-        
+
         log.info("User role updated successfully for user ID: {}", userId);
         return updatedUser;
     }
@@ -117,7 +157,7 @@ public class AdminService {
      */
     public User updateUser(Long userId, String nom, String prenom, String email, Role role) {
         log.info("Updating user ID: {}", userId);
-        
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> {
                     log.error("User not found with ID: {}", userId);
@@ -137,7 +177,74 @@ public class AdminService {
 
         User updatedUser = userRepository.save(user);
         log.info("User updated successfully with ID: {}", userId);
-        
+
+        return updatedUser;
+    }
+
+    /**
+     * Update user information with optional password change and email notification
+     */
+    public User updateUserWithNotification(Long userId, String nom, String prenom, String email,
+                                           Role role, String newPassword, boolean sendNotification) {
+        log.info("Updating user ID: {} with notification option", userId);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> {
+                    log.error("User not found with ID: {}", userId);
+                    return new IllegalArgumentException("User not found.");
+                });
+
+        // Check if email is being changed and if new email already exists
+        if (!user.getEmail().equals(email) && userRepository.existsByEmail(email)) {
+            log.warn("Email already exists: {}", email);
+            throw new IllegalArgumentException("Email already exists.");
+        }
+
+        boolean emailChanged = !user.getEmail().equals(email);
+        boolean passwordChanged = newPassword != null && !newPassword.isEmpty();
+        boolean roleChanged = user.getRole() != role;
+
+        // Update user fields
+        user.setNom(nom);
+        user.setPrenom(prenom);
+        user.setEmail(email);
+        user.setRole(role);
+
+        // Update password if provided
+        if (passwordChanged) {
+            // Validate new password
+            if (newPassword.length() < 6) {
+                throw new IllegalArgumentException("Password must be at least 6 characters long.");
+            }
+            user.setMotDePasse(passwordEncoder.encode(newPassword));
+        }
+
+        User updatedUser = userRepository.save(user);
+        log.info("User updated successfully with ID: {}", userId);
+
+        // Send notification email if requested
+        if (sendNotification && (emailChanged || passwordChanged || roleChanged)) {
+            try {
+                String fullName = (prenom != null && !prenom.isEmpty() ? prenom + " " : "") +
+                        (nom != null && !nom.isEmpty() ? nom : "User");
+
+                emailService.sendAccountUpdateNotification(
+                        email,
+                        fullName,
+                        email,
+                        passwordChanged ? newPassword : null,
+                        role.name(),
+                        emailChanged,
+                        passwordChanged,
+                        roleChanged
+                );
+
+                log.info("Account update notification email sent to: {}", email);
+            } catch (Exception e) {
+                log.error("Failed to send update notification email to {}: {}", email, e.getMessage());
+            }
+        }
+
         return updatedUser;
     }
 
@@ -161,12 +268,12 @@ public class AdminService {
      */
     public void deleteUser(Long userId) {
         log.info("Deleting user with ID: {}", userId);
-        
+
         if (!userRepository.existsById(userId)) {
             log.error("Cannot delete - user not found with ID: {}", userId);
             throw new IllegalArgumentException("User not found.");
         }
-        
+
         userRepository.deleteById(userId);
         log.info("User deleted successfully with ID: {}", userId);
     }

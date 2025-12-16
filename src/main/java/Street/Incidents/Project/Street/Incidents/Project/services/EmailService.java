@@ -25,6 +25,9 @@ public class EmailService {
     @Value("${app.base-url:http://localhost:8080}")
     private String baseUrl;
 
+    @Value("${app.frontend-url:http://localhost:8080}")
+    private String frontendUrl;
+
     @Async
     public void sendVerificationEmail(String to, String name, String verificationCode) {
         try {
@@ -63,7 +66,7 @@ public class EmailService {
 
             Context context = new Context(Locale.getDefault());
             context.setVariable("name", name);
-            context.setVariable("loginUrl", baseUrl + "/login-page");
+            context.setVariable("loginUrl", frontendUrl + "/login-page");
 
             String htmlContent = templateEngine.process("email/welcome-email", context);
 
@@ -141,7 +144,7 @@ public class EmailService {
 
             Context context = new Context(Locale.getDefault());
             context.setVariable("name", name);
-            context.setVariable("loginUrl", baseUrl + "/login-page");
+            context.setVariable("loginUrl", frontendUrl + "/login-page");
 
             String htmlContent = templateEngine.process("email/password-reset-confirmation-email", context);
 
@@ -165,7 +168,7 @@ public class EmailService {
 
             Context context = new Context(Locale.getDefault());
             context.setVariable("name", name);
-            context.setVariable("loginUrl", baseUrl + "/login-page");
+            context.setVariable("loginUrl", frontendUrl + "/login-page");
 
             String htmlContent = templateEngine.process("email/password-change-completed-email", context);
 
@@ -178,6 +181,97 @@ public class EmailService {
             log.info("Password change completion email sent to: {}", to);
         } catch (MessagingException e) {
             log.error("Failed to send password change completion email to {}: {}", to, e.getMessage());
+        }
+    }
+
+    @Async
+    public void sendAccountCredentialsEmail(String toEmail, String name, String email,
+                                            String password, String role) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setTo(toEmail);
+            helper.setSubject("Your Account Has Been Created - Street Incidents");
+
+            // Prepare Thymeleaf context
+            Context context = new Context(Locale.getDefault());
+            context.setVariable("name", name);
+            context.setVariable("email", email);
+            context.setVariable("password", password);
+            context.setVariable("role", role);
+            context.setVariable("loginUrl", frontendUrl + "/login-page");
+
+            // Process the template
+            String htmlContent = templateEngine.process("email/account-credentials", context);
+            helper.setText(htmlContent, true);
+
+            // Set from email
+            helper.setFrom("noreply@streetincidents.com");
+
+            mailSender.send(message);
+            log.info("Account credentials email sent to: {}", toEmail);
+
+        } catch (MessagingException e) {
+            log.error("Failed to send account credentials email to {}: {}", toEmail, e.getMessage());
+            throw new RuntimeException("Failed to send account credentials email", e);
+        }
+    }
+
+    /**
+     * Send account credentials to user
+     */
+    @Async
+    public void sendAccountCredentials(String email, String name, String password, String role) {
+        sendAccountCredentialsEmail(email, name, email, password, role);
+    }
+
+    /**
+     * Send account credentials for admin-created users
+     */
+    @Async
+    public void sendAdminCreatedAccount(String email, String fullName, String password, String role) {
+        sendAccountCredentialsEmail(email, fullName, email, password, role);
+    }
+
+    /**
+     * Send account update notification email
+     */
+    @Async
+    public void sendAccountUpdateNotification(String toEmail, String name, String email,
+                                              String newPassword, String role,
+                                              boolean emailChanged, boolean passwordChanged,
+                                              boolean roleChanged) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setTo(toEmail);
+            helper.setSubject("Your Account Information Has Been Updated - Street Incidents");
+
+            // Prepare Thymeleaf context
+            Context context = new Context(Locale.getDefault());
+            context.setVariable("name", name);
+            context.setVariable("email", email);
+            context.setVariable("newPassword", newPassword);
+            context.setVariable("role", role);
+            context.setVariable("emailChanged", emailChanged);
+            context.setVariable("passwordChanged", passwordChanged);
+            context.setVariable("roleChanged", roleChanged);
+            context.setVariable("loginUrl", frontendUrl + "/login-page");
+
+            // Process the template
+            String htmlContent = templateEngine.process("email/account-update-notification", context);
+            helper.setText(htmlContent, true);
+
+            helper.setFrom("noreply@streetincidents.com");
+
+            mailSender.send(message);
+            log.info("Account update notification email sent to: {}", toEmail);
+
+        } catch (MessagingException e) {
+            log.error("Failed to send account update notification email to {}: {}", toEmail, e.getMessage());
+            throw new RuntimeException("Failed to send account update notification email", e);
         }
     }
 }
