@@ -45,7 +45,7 @@ public class IncidentController {
         // Set active page for sidebar highlighting
         model.addAttribute("activePage", "incidents");
 
-        return "incident/incidents"; // Thymeleaf template
+        return "citizen/incidents"; // Thymeleaf template
     }
 
     // POST /citizen/incidents
@@ -70,7 +70,7 @@ public class IncidentController {
             model.addAttribute("priorites", Priorite.values());
             model.addAttribute("activePage", "incidents");
 
-            return "incident/incidents";
+            return "citizen/incidents";
         }
 
         try {
@@ -86,8 +86,7 @@ public class IncidentController {
             redirectAttributes.addFlashAttribute("alertMessage",
                     "Incident signalé avec succès ! Votre déclaration a été enregistrée.");
 
-            // Redirect to home dashboard instead of /dashboard
-            return "redirect:/admin/home";
+            return "redirect:/citizen/dashboard";
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -102,7 +101,7 @@ public class IncidentController {
             model.addAttribute("priorites", Priorite.values());
             model.addAttribute("activePage", "incidents");
 
-            return "incident/incidents";
+            return "citizen/incidents";
         }
     }
 

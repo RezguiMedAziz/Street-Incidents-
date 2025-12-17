@@ -66,17 +66,17 @@ public class AuthPageController {
             session.setAttribute("token", authResponse.getToken());
             session.setAttribute("userEmail", authResponse.getEmail());
             session.setAttribute("userName", authResponse.getNom() + " " + authResponse.getPrenom());
-            session.setAttribute("userRole", authResponse.getRole());
+            session.setAttribute("userRole", authResponse.getRole().name());
 
             // Add the userRole to the model so it can be accessed in Thymeleaf
-            model.addAttribute("userRole", authResponse.getRole()); // Add userRole to the model
+            model.addAttribute("userRole", authResponse.getRole().name());
 
             // Store authentication in Spring Security context
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
                             authResponse.getEmail(),
                             null,
-                            Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + authResponse.getRole()))
+                            Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + authResponse.getRole().name()))
                     );
 
             SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
@@ -89,8 +89,18 @@ public class AuthPageController {
             log.info("Session attributes saved for user: {}", authResponse.getEmail());
             model.addAttribute("userName", session.getAttribute("userName"));
             // Redirect based on user role
-            log.info("User role: {}", authResponse.getRole());
-            return "redirect:/home";
+            switch (authResponse.getRole()) {
+                case CITOYEN:
+                    return "redirect:/citizen/dashboard";
+                case ADMINISTRATEUR:
+                    return "redirect:/admin/dashboard";
+                case AGENT_MUNICIPAL:
+                    return "redirect:/agent/dashboard";
+                default:
+                    return "redirect:/login-page?error=unknownRole";
+            }
+
+
 
 
         } catch (Exception e) {
