@@ -383,7 +383,7 @@ public class AdminController {
         model.addAttribute("selectedStartDate", startDate);
         model.addAttribute("selectedEndDate", endDate);
 
-        // ✅✅✅ ADD FILTER OPTIONS FOR DROPDOWNS
+        // ✅ ADD FILTER OPTIONS FOR DROPDOWNS
         model.addAttribute("statuts", StatutIncident.values());
         model.addAttribute("departements", Departement.values());
         model.addAttribute("gouvernorats", incidentService.getAllGouvernorats());
@@ -458,6 +458,56 @@ public class AdminController {
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "An error occurred while updating the incident status.");
             log.error("Unexpected error while updating incident status: {}", e.getMessage(), e);
+        }
+
+        return "redirect:/admin/incidents";
+    }
+
+    // ========================================
+    // ✅ NEW: CLOSE INCIDENT AFTER READING CITIZEN FEEDBACK
+    // ========================================
+
+    /**
+     * Close incident (set status to CLOTURE)
+     * Only works for incidents with status RESOLU
+     * Should be called after admin reads citizen feedback
+     */
+    @PostMapping("/close-incident")
+    public String closeIncident(
+            @RequestParam("incidentId") Long incidentId,
+            RedirectAttributes redirectAttributes) {
+
+        try {
+            log.info("Admin request to close incident with ID: {}", incidentId);
+
+            // 1️⃣ Verify incident exists and is RESOLU
+            Incident incident = incidentService.getIncidentById(incidentId)
+                    .orElseThrow(() -> new IllegalArgumentException("Incident not found with ID: " + incidentId));
+
+            // 2️⃣ Check current status
+            if (incident.getStatut() != StatutIncident.RESOLU) {
+                log.warn("Attempt to close incident {} with status {}", incidentId, incident.getStatut());
+                redirectAttributes.addFlashAttribute("error",
+                        "Only RESOLVED incidents can be closed. Current status: " + incident.getStatut());
+                return "redirect:/admin/incidents";
+            }
+
+            // 3️⃣ Update status to CLOTURE (email sent automatically in service)
+            incidentService.updateIncidentStatus(incidentId, StatutIncident.CLOTURE);
+
+            // 4️⃣ Success message
+            redirectAttributes.addFlashAttribute("success",
+                    "Incident #" + incidentId + " has been successfully closed. Citizen has been notified by email.");
+
+            log.info("Incident {} closed successfully by admin", incidentId);
+
+        } catch (IllegalArgumentException e) {
+            log.error("Incident not found: {}", incidentId);
+            redirectAttributes.addFlashAttribute("error", "Incident not found: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Failed to close incident {}: {}", incidentId, e.getMessage(), e);
+            redirectAttributes.addFlashAttribute("error",
+                    "Failed to close incident: " + e.getMessage());
         }
 
         return "redirect:/admin/incidents";
