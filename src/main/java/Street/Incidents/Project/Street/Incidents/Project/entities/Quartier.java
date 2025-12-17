@@ -16,10 +16,9 @@ public class Quartier {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private String nom;
+    private String codePostal;
+
     @OneToMany(mappedBy = "quartier")
     private List<Incident> incidents;
-
-    private String gouvernorat;
-    private String municipalite;
-
 }
