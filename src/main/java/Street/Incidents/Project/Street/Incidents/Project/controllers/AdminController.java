@@ -34,7 +34,6 @@ public class AdminController {
     private final AdminService adminService;
     private final IncidentService incidentService;
     private final AdminDashboardService adminDashboardService;
-
     /**
      * Display the admin home page
      */
@@ -569,4 +568,5 @@ public class AdminController {
 
         return "redirect:/admin/incidents";
     }
+}
 }
