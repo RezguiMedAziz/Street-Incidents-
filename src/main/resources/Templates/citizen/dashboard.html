@@ -84,25 +84,11 @@
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
         }
 
-        .stats-card.signale {
-            border-left-color: #f6ad55;
-        }
-
-        .stats-card.pris-en-charge {
-            border-left-color: #667eea;
-        }
-
-        .stats-card.en-resolution {
-            border-left-color: #48bb78;
-        }
-
-        .stats-card.resolu {
-            border-left-color: #4299e1;
-        }
-
-        .stats-card.cloture {
-            border-left-color: #718096;
-        }
+        .stats-card.signale { border-left-color: #f6ad55; }
+        .stats-card.pris-en-charge { border-left-color: #667eea; }
+        .stats-card.en-resolution { border-left-color: #48bb78; }
+        .stats-card.resolu { border-left-color: #4299e1; }
+        .stats-card.cloture { border-left-color: #718096; }
 
         .stats-icon {
             width: 50px;
@@ -203,7 +189,6 @@
             font-size: 18px;
         }
 
-        /* Styles pour le tableau */
         .table-responsive {
             overflow-x: auto;
             border-radius: 12px;
@@ -255,15 +240,6 @@
             vertical-align: middle;
         }
 
-        .incidents-table tbody tr:last-child td:first-child {
-            border-bottom-left-radius: 12px;
-        }
-
-        .incidents-table tbody tr:last-child td:last-child {
-            border-bottom-right-radius: 12px;
-        }
-
-        /* Badge de statut */
         .status-badge {
             padding: 6px 14px;
             border-radius: 20px;
@@ -305,7 +281,6 @@
             border: 1px solid #cbd5e0;
         }
 
-        /* Badge de priorité */
         .priority-badge {
             padding: 4px 10px;
             border-radius: 12px;
@@ -330,22 +305,37 @@
             color: #2f855a;
         }
 
-        /* Bouton détails */
-        .details-btn {
-            background: linear-gradient(135deg, var(--accent-blue) 0%, var(--secondary-blue) 100%);
-            color: white;
+        /* Styles pour les boutons d'actions */
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: nowrap;
+        }
+
+        .action-btn {
             border: none;
-            padding: 8px 18px;
+            padding: 8px 12px;
             border-radius: 8px;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            box-shadow: 0 2px 8px rgba(49, 130, 206, 0.25);
+            gap: 5px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+            white-space: nowrap;
+        }
+
+        .action-btn i {
+            font-size: 12px;
+        }
+
+        .details-btn {
+            background: linear-gradient(135deg, var(--accent-blue) 0%, var(--secondary-blue) 100%);
+            color: white;
         }
 
         .details-btn:hover {
@@ -354,11 +344,28 @@
             color: white;
         }
 
-        .details-btn i {
-            font-size: 12px;
+        .export-btn-pdf {
+            background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+            color: white;
         }
 
-        /* Titre tronqué */
+        .export-btn-pdf:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(197, 48, 48, 0.35);
+            color: white;
+        }
+
+        .export-btn-csv {
+            background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+            color: white;
+        }
+
+        .export-btn-csv:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(47, 133, 90, 0.35);
+            color: white;
+        }
+
         .incident-title-cell {
             max-width: 250px;
             overflow: hidden;
@@ -368,19 +375,16 @@
             color: var(--gray-dark);
         }
 
-        /* Catégorie */
         .category-cell {
             color: var(--gray-medium);
             font-weight: 500;
         }
 
-        /* Date */
         .date-cell {
             color: var(--gray-medium);
             font-size: 14px;
         }
 
-        /* Empty state */
         .empty-state {
             text-align: center;
             padding: 80px 20px;
@@ -441,9 +445,16 @@
                 max-width: 150px;
             }
 
-            .status-badge {
-                font-size: 10px;
-                padding: 5px 10px;
+            .action-buttons {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .action-btn {
+                width: 100%;
+                justify-content: center;
+                padding: 6px 10px;
+                font-size: 11px;
             }
         }
 
@@ -547,41 +558,55 @@
                             <span class="category-cell" th:text="${incident.categorie}">Catégorie</span>
                         </td>
                         <td>
-                                <span class="date-cell"
-                                      th:text="${incident.quartier != null ? incident.quartier.municipalite : 'Non défini'}">
-                                    Localisation
-                                </span>
+                            <span class="date-cell"
+                                  th:text="${incident.quartier != null ? incident.quartier.municipalite : 'Non défini'}">
+                                Localisation
+                            </span>
                         </td>
                         <td>
-                                <span class="date-cell"
-                                      th:text="${#temporals.format(incident.dateCreation, 'dd/MM/yyyy')}">
-                                    01/01/2024
-                                </span>
+                            <span class="date-cell"
+                                  th:text="${#temporals.format(incident.dateCreation, 'dd/MM/yyyy')}">
+                                01/01/2024
+                            </span>
                         </td>
                         <td>
-    <span class="priority-badge"
-          th:classappend="${incident.priorite.name() == 'CRITIQUE'} ? 'haute' :
-                         (${incident.priorite.name() == 'ELEVEE'} ? 'haute' :
-                         (${incident.priorite.name() == 'MOYENNE'} ? 'moyenne' : 'basse'))"
-          th:text="${incident.priorite.label}">
-        Moyenne
-    </span>
+                            <span class="priority-badge"
+                                  th:classappend="${incident.priorite.name() == 'CRITIQUE'} ? 'haute' :
+                                                 (${incident.priorite.name() == 'ELEVEE'} ? 'haute' :
+                                                 (${incident.priorite.name() == 'MOYENNE'} ? 'moyenne' : 'basse'))"
+                                  th:text="${incident.priorite.label}">
+                                Moyenne
+                            </span>
                         </td>
                         <td>
-    <span class="status-badge"
-          th:classappend="${#strings.toLowerCase(incident.statut.name()).replace('_', '-')}"
-          th:text="${incident.statut.name() == 'SIGNALE'} ? 'Signalé' :
-                   (${incident.statut.name() == 'PRIS_EN_CHARGE'} ? 'Pris en Charge' :
-                   (${incident.statut.name() == 'EN_RESOLUTION'} ? 'En Résolution' :
-                   (${incident.statut.name() == 'RESOLU'} ? 'Résolu' : 'Clôturé')))">
-        Signalé
-    </span>
+                            <span class="status-badge"
+                                  th:classappend="${#strings.toLowerCase(incident.statut.name()).replace('_', '-')}"
+                                  th:text="${incident.statut.name() == 'SIGNALE'} ? 'Signalé' :
+                                           (${incident.statut.name() == 'PRIS_EN_CHARGE'} ? 'Pris en Charge' :
+                                           (${incident.statut.name() == 'EN_RESOLUTION'} ? 'En Résolution' :
+                                           (${incident.statut.name() == 'RESOLU'} ? 'Résolu' : 'Clôturé')))">
+                                Signalé
+                            </span>
                         </td>
                         <td>
-                            <a th:href="@{/citizen/incident/{id}(id=${incident.id})}" class="details-btn">
-                                <i class="fas fa-eye"></i>
-                                Détails
-                            </a>
+                            <div class="action-buttons">
+                                <a th:href="@{/citizen/incident/{id}(id=${incident.id})}" class="action-btn details-btn">
+                                    <i class="fas fa-eye"></i>
+                                    Détails
+                                </a>
+                                <a th:href="@{/citizen/export/incident/{id}/pdf(id=${incident.id})}"
+                                   class="action-btn export-btn-pdf"
+                                   title="Exporter en PDF">
+                                    <i class="fas fa-file-pdf"></i>
+                                    PDF
+                                </a>
+                                <a th:href="@{/citizen/export/incident/{id}/csv(id=${incident.id})}"
+                                   class="action-btn export-btn-csv"
+                                   title="Exporter en CSV">
+                                    <i class="fas fa-file-csv"></i>
+                                    CSV
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     </tbody>

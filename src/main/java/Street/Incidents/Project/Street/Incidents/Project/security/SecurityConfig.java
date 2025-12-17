@@ -34,6 +34,8 @@ public class SecurityConfig {
                 // Protection CSRF activée
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        // Désactiver CSRF pour les routes d'export (optionnel, mais recommandé pour les téléchargements)
+                        .ignoringRequestMatchers("/citizen/export/**")
                 )
                 .authorizeHttpRequests(auth -> auth
                         // Public web pages and routes
@@ -46,112 +48,124 @@ public class SecurityConfig {
 
                         // Email Verification Pages
                         .requestMatchers(
-                                "/verify-email-page",           // GET: Verification form page
-                                "/verify-email",                // GET: Email link verification
-                                "/resend-verification-page",    // GET: Resend verification page
-                                "/verification-success",        // GET: Success page
-                                "/verify-email-form",           // POST: Form submission
-                                "/resend-verification-form"     // POST: Resend form submission
+                                "/verify-email-page",
+                                "/verify-email",
+                                "/resend-verification-page",
+                                "/verification-success",
+                                "/verify-email-form",
+                                "/resend-verification-form"
                         ).permitAll()
 
                         // Public API Endpoints (authentication and registration)
                         .requestMatchers(
-                                "/api/auth/verify-email",       // GET/POST: Verify email API
-                                "/api/auth/resend-verification" // POST: Resend verification API
+                                "/api/auth/verify-email",
+                                "/api/auth/resend-verification"
                         ).permitAll()
 
                         // ========================
                         // FORGET PASSWORD ENDPOINTS - NO AUTH REQUIRED
                         // ========================
                         .requestMatchers(
-                                "/forgot-password-page",        // GET: Forgot password page
-                                "/forgot-password-form",        // POST: Submit forgot password
-                                "/verify-reset-token-page",     // GET: Verify reset token page
-                                "/verify-reset-token-form",     // POST: Submit token verification
-                                "/reset-password-page",         // GET: Reset password page
-                                "/reset-password-form",         // POST: Submit new password
-                                "/confirm-password-change"      // GET: Confirm password change from email
+                                "/forgot-password-page",
+                                "/forgot-password-form",
+                                "/verify-reset-token-page",
+                                "/verify-reset-token-form",
+                                "/reset-password-page",
+                                "/reset-password-form",
+                                "/confirm-password-change"
                         ).permitAll()
 
                         // ========================
                         // PASSWORD CHANGE SUCCESS PAGES - NO AUTH REQUIRED
                         // ========================
                         .requestMatchers(
-                                "/password-change-success",     // GET: Password change success page
-                                "/password-change-error"        // GET: Password change error page
+                                "/password-change-success",
+                                "/password-change-error"
                         ).permitAll()
 
                         // ========================
-                        // FORGET PASSWORD ENDPOINTS - NO AUTH REQUIRED
+                        // WEB PAGES
                         // ========================
-
-                        // ✅ Web Pages
                         .requestMatchers(
-                                "/",                            // GET: Home redirect
-                                "/layouts/main",                        // GET: Home page
-                                "/login-page",                  // GET: Login page
-                                "/register-page",               // GET: Register page
-                                "/logout",                      // GET/POST: Logout
-                                "/perform-logout"               // Spring Security logout
+                                "/",
+                                "/layouts/main",
+                                "/login-page",
+                                "/register-page",
+                                "/logout",
+                                "/perform-logout"
                         ).permitAll()
 
-                        // ✅ API Endpoints
+                        // ========================
+                        // API ENDPOINTS
+                        // ========================
                         .requestMatchers(
-                                "/api/auth/login",              // POST: API login
-                                "/api/auth/register",           // POST: API register
-                                "/api/auth/login-form",         // POST: Web form login
-                                "/api/auth/register-form",      // POST: Web form register
-                                "/api/auth/test-token",         // GET: Test token
-                                "/api/auth/**"                  // All other auth endpoints
+                                "/api/auth/login",
+                                "/api/auth/register",
+                                "/api/auth/login-form",
+                                "/api/auth/register-form",
+                                "/api/auth/test-token",
+                                "/api/auth/**"
                         ).permitAll()
 
                         // ========================
                         // STATIC RESOURCES
                         // ========================
                         .requestMatchers(
-                                "/css/**",                      // CSS files
-                                "/js/**",                       // JavaScript files
-                                "/images/**",                   // Images
-                                "/logo.png",                    // Logo file
+                                "/css/**",
+                                "/js/**",
+                                "/images/**",
+                                "/logo.png",
                                 "/**.png", "/**.jpg", "/**.jpeg", "/**.gif", "/**.svg", "/**.ico",
-                                "/**.css", "/**.js",            // All static files
-                                "/webjars/**",                  // WebJars
-                                "/favicon.ico"                  // Favicon
+                                "/**.css", "/**.js",
+                                "/webjars/**",
+                                "/favicon.ico"
                         ).permitAll()
 
                         // ========================
                         // DEVELOPMENT & DOCS
                         // ========================
                         .requestMatchers(
-                                "/swagger-ui/**",               // Swagger UI
-                                "/v3/api-docs/**",              // OpenAPI docs
-                                "/swagger-resources/**",        // Swagger resources
-                                "/swagger-ui.html",             // Swagger HTML
-                                "/webjars/**"                   // WebJars for Swagger
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/swagger-resources/**",
+                                "/swagger-ui.html",
+                                "/webjars/**"
                         ).permitAll()
 
                         // ========================
                         // ERROR PAGES
                         // ========================
                         .requestMatchers(
-                                "/error",                       // Error page
-                                "/error/**"                     // All error pages
+                                "/error",
+                                "/error/**"
                         ).permitAll()
 
                         // ========================
                         // PROTECTED ENDPOINTS
                         // ========================
+
+                        // Admin routes
+                        .requestMatchers("/admin/**").hasRole("ADMINISTRATEUR")
+
+                        // Export routes for citizens (plus spécifique en premier)
+                        .requestMatchers("/citizen/export/**").hasRole("CITOYEN")
+
+                        // Citizen routes
+                        .requestMatchers("/citizen/**").hasRole("CITOYEN")
+
+                        // Agent routes
+                        .requestMatchers("/agent/**").hasRole("AGENT_MUNICIPAL")
+
                         // Everything else needs authentication
-                        .requestMatchers("/admin/**").hasRole("ADMINISTRATEUR")  // Admin routes secured
-                        .anyRequest().authenticated()  // Any other request needs authentication
+                        .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
-                        .loginPage("/login-page")  // Custom login page
-                        .defaultSuccessUrl("/admin/dashboard", true)  // Redirect to the admin dashboard after login
-                        .failureUrl("/login-page?error=true")  // Optional: Redirect on failure
+                        .loginPage("/login-page")
+                        .defaultSuccessUrl("/admin/dashboard", true)
+                        .failureUrl("/login-page?error=true")
                 )
                 .logout(logout -> logout
-                        .logoutUrl("/perform-logout") // URL for Spring Security logout
+                        .logoutUrl("/perform-logout")
                         .logoutSuccessUrl("/login-page?logout=true")
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID")
@@ -159,8 +173,8 @@ public class SecurityConfig {
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.ALWAYS)
-                        .sessionFixation().migrateSession() // Preserve session on login
-                        .maximumSessions(1) // Only one session per user
+                        .sessionFixation().migrateSession()
+                        .maximumSessions(1)
                         .maxSessionsPreventsLogin(false)
                 )
                 .authenticationProvider(authenticationProvider)

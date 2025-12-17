@@ -33,13 +33,16 @@ public class Incident {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default // Ajouter @Builder.Default pour les initialisations
     private StatutIncident statut = StatutIncident.SIGNALE;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default // Ajouter @Builder.Default pour les initialisations
     private Priorite priorite = Priorite.MOYENNE;
 
     @Column(nullable = false, updatable = false)
+    @Builder.Default // Ajouter @Builder.Default pour les initialisations
     private LocalDateTime dateCreation = LocalDateTime.now();
 
     @Column
@@ -63,13 +66,14 @@ public class Incident {
     @Column
     private Double longitude;
 
-    // ✅ NEW: Commentaire/Feedback du citoyen
     @Column(name = "commentaire_citoyen", columnDefinition = "TEXT")
     private String commentaireCitoyen;
 
     @PrePersist
     protected void onCreate() {
-        this.dateCreation = LocalDateTime.now();
+        if (this.dateCreation == null) {
+            this.dateCreation = LocalDateTime.now();
+        }
         if (this.statut == null) {
             this.statut = StatutIncident.SIGNALE;
         }
