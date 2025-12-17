@@ -198,6 +198,15 @@
                         <span>Manage Users</span>
                     </a>
                 </li>
+                <!-- Incidents - only for ADMINISTRATEUR -->
+                <li class="menu-admin" id="menu-incidents">
+                    <a th:href="@{/admin/incidents}"
+                       th:classappend="${activePage == 'incidents'} ? 'active' : ''">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span>Incidents</span>
+                    </a>
+                </li>
+
 
                 <!-- Notifications - only for ADMINISTRATEUR -->
                 <li class="menu-admin" id="menu-notifications">

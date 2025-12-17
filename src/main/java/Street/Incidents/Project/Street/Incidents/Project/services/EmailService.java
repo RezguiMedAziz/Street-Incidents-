@@ -274,4 +274,418 @@ public class EmailService {
             throw new RuntimeException("Failed to send account update notification email", e);
         }
     }
+
+    // ========================================
+    // ✅ NEW: INCIDENT ASSIGNMENT NOTIFICATION
+    // ========================================
+
+    /**
+     * Send incident assignment notification to agent
+     */
+    @Async
+    public void sendIncidentAssignmentNotification(String toEmail, String agentName, Long incidentId,
+                                                   String incidentTitle, String incidentDescription,
+                                                   String category, String priority) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setTo(toEmail);
+            helper.setSubject("New Incident Assigned - #" + incidentId + " - Street Incidents");
+
+            // Inline HTML (no template needed for now - you can create a template later)
+            String htmlContent = buildIncidentAssignmentHtml(
+                    agentName, incidentId, incidentTitle, incidentDescription, category, priority
+            );
+
+            helper.setText(htmlContent, true);
+            helper.setFrom("noreply@streetincidents.com");
+
+            mailSender.send(message);
+            log.info("Incident assignment notification sent successfully to: {}", toEmail);
+
+        } catch (MessagingException e) {
+            log.error("Failed to send incident assignment notification to {}: {}", toEmail, e.getMessage());
+            throw new RuntimeException("Failed to send incident assignment email", e);
+        }
+    }
+
+    /**
+     * Build HTML content for incident assignment email
+     */
+    private String buildIncidentAssignmentHtml(String agentName, Long incidentId,
+                                               String title, String description,
+                                               String category, String priority) {
+        // Determine priority color
+        String priorityColor = switch (priority.toLowerCase()) {
+            case "haute" -> "#dc2626";
+            case "moyenne" -> "#f59e0b";
+            case "faible" -> "#10b981";
+            default -> "#6b7280";
+        };
+
+        return String.format("""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <style>
+                        body {
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                            line-height: 1.6;
+                            color: #333;
+                            background-color: #f3f4f6;
+                            margin: 0;
+                            padding: 0;
+                        }
+                        .container {
+                            max-width: 600px;
+                            margin: 30px auto;
+                            background: white;
+                            border-radius: 12px;
+                            overflow: hidden;
+                            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                        }
+                        .header {
+                            background: linear-gradient(135deg, #3b82f6 0%%, #2563eb 100%%);
+                            color: white;
+                            padding: 30px 20px;
+                            text-align: center;
+                        }
+                        .header h1 {
+                            margin: 0;
+                            font-size: 24px;
+                            font-weight: 600;
+                        }
+                        .content {
+                            padding: 30px;
+                        }
+                        .greeting {
+                            font-size: 16px;
+                            margin-bottom: 20px;
+                        }
+                        .incident-card {
+                            background: #f9fafb;
+                            border: 1px solid #e5e7eb;
+                            border-radius: 8px;
+                            padding: 20px;
+                            margin: 20px 0;
+                        }
+                        .incident-card h2 {
+                            color: #1f2937;
+                            font-size: 18px;
+                            margin: 0 0 15px 0;
+                        }
+                        .detail-row {
+                            padding: 10px 0;
+                            border-bottom: 1px solid #e5e7eb;
+                        }
+                        .detail-row:last-child {
+                            border-bottom: none;
+                        }
+                        .detail-label {
+                            font-weight: 600;
+                            color: #6b7280;
+                            font-size: 13px;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                        }
+                        .detail-value {
+                            color: #1f2937;
+                            margin-top: 5px;
+                            font-size: 15px;
+                        }
+                        .priority-badge {
+                            display: inline-block;
+                            padding: 4px 12px;
+                            border-radius: 12px;
+                            font-size: 13px;
+                            font-weight: 600;
+                            color: white;
+                            background-color: %s;
+                        }
+                        .btn {
+                            display: inline-block;
+                            padding: 12px 30px;
+                            background: #3b82f6;
+                            color: white;
+                            text-decoration: none;
+                            border-radius: 6px;
+                            margin: 20px 0;
+                            font-weight: 600;
+                        }
+                        .btn:hover {
+                            background: #2563eb;
+                        }
+                        .footer {
+                            background: #f9fafb;
+                            padding: 20px;
+                            text-align: center;
+                            font-size: 13px;
+                            color: #6b7280;
+                            border-top: 1px solid #e5e7eb;
+                        }
+                        .icon {
+                            font-size: 48px;
+                            margin-bottom: 10px;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header">
+                            <div class="icon">🔔</div>
+                            <h1>New Incident Assigned</h1>
+                        </div>
+                        <div class="content">
+                            <p class="greeting">Hello <strong>%s</strong>,</p>
+                            <p>A new incident has been assigned to you. Please review the details below and take the necessary actions.</p>
+                            
+                            <div class="incident-card">
+                                <h2>Incident Details</h2>
+                                
+                                <div class="detail-row">
+                                    <div class="detail-label">Incident ID</div>
+                                    <div class="detail-value">#%d</div>
+                                </div>
+                                
+                                <div class="detail-row">
+                                    <div class="detail-label">Title</div>
+                                    <div class="detail-value">%s</div>
+                                </div>
+                                
+                                <div class="detail-row">
+                                    <div class="detail-label">Description</div>
+                                    <div class="detail-value">%s</div>
+                                </div>
+                                
+                                <div class="detail-row">
+                                    <div class="detail-label">Category</div>
+                                    <div class="detail-value">%s</div>
+                                </div>
+                                
+                                <div class="detail-row">
+                                    <div class="detail-label">Priority</div>
+                                    <div class="detail-value">
+                                        <span class="priority-badge">%s</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <p>Please log in to the system to view the full details, including location, photos, and reporter information.</p>
+                            
+                            <center>
+                                <a href="%s/login-page" class="btn">View in Dashboard</a>
+                            </center>
+                            
+                            <p style="margin-top: 30px; font-size: 14px; color: #6b7280;">
+                                If you have any questions or need assistance, please contact the administration team.
+                            </p>
+                            
+                            <p style="margin-top: 20px;">
+                                Best regards,<br>
+                                <strong>Street Incidents Team</strong>
+                            </p>
+                        </div>
+                        <div class="footer">
+                            <p>This is an automated message. Please do not reply to this email.</p>
+                            <p style="margin-top: 10px;">© 2025 Street Incidents. All rights reserved.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """,
+                priorityColor,
+                agentName,
+                incidentId,
+                title != null ? title : "No title",
+                description != null ? description : "No description provided",
+                category != null ? category : "Uncategorized",
+                priority != null ? priority.toUpperCase() : "MOYENNE",
+                frontendUrl
+        );
+    }
+    /**
+     * Send incident status update notification to citizen
+     */
+    @Async
+    public void sendIncidentStatusUpdateToCitizen(String toEmail, String citizenName, Long incidentId,
+                                                  String incidentTitle, String oldStatus,
+                                                  String newStatus, String agentName) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setTo(toEmail);
+            helper.setSubject("Mise à jour de votre incident #" + incidentId + " - Street Incidents");
+
+            String htmlContent = buildIncidentStatusUpdateHtml(
+                    citizenName, incidentId, incidentTitle, oldStatus, newStatus, agentName
+            );
+
+            helper.setText(htmlContent, true);
+            helper.setFrom("noreply@streetincidents.com");
+
+            mailSender.send(message);
+            log.info("Incident status update notification sent successfully to citizen: {}", toEmail);
+
+        } catch (MessagingException e) {
+            log.error("Failed to send status update notification to {}: {}", toEmail, e.getMessage());
+            throw new RuntimeException("Failed to send status update email", e);
+        }
+    }
+
+    /**
+     * Build HTML content for citizen status update email
+     */
+    private String buildIncidentStatusUpdateHtml(String citizenName, Long incidentId,
+                                                 String title, String oldStatus,
+                                                 String newStatus, String agentName) {
+        // Determine status color and message
+        String statusColor = switch (newStatus.toLowerCase()) {
+            case "pris_en_charge" -> "#f59e0b";
+            case "en_resolution" -> "#3b82f6";
+            case "resolu" -> "#10b981";
+            case "cloture" -> "#6b7280";
+            default -> "#3b82f6";
+        };
+
+        String statusMessage = switch (newStatus) {
+            case "PRIS_EN_CHARGE" -> "pris en charge";
+            case "EN_RESOLUTION" -> "en cours de résolution";
+            case "RESOLU" -> "résolu";
+            case "CLOTURE" -> "clôturé";
+            default -> "mis à jour";
+        };
+
+        return String.format("""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <style>
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                        line-height: 1.6;
+                        color: #333;
+                        background-color: #f3f4f6;
+                        margin: 0;
+                        padding: 0;
+                    }
+                    .container {
+                        max-width: 600px;
+                        margin: 30px auto;
+                        background: white;
+                        border-radius: 12px;
+                        overflow: hidden;
+                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    }
+                    .header {
+                        background: linear-gradient(135deg, #10b981 0%%, #059669 100%%);
+                        color: white;
+                        padding: 30px 20px;
+                        text-align: center;
+                    }
+                    .header h1 {
+                        margin: 0;
+                        font-size: 24px;
+                        font-weight: 600;
+                    }
+                    .content {
+                        padding: 30px;
+                    }
+                    .greeting {
+                        font-size: 16px;
+                        margin-bottom: 20px;
+                    }
+                    .status-badge {
+                        display: inline-block;
+                        padding: 8px 16px;
+                        border-radius: 20px;
+                        font-size: 14px;
+                        font-weight: 600;
+                        color: white;
+                        background-color: %s;
+                        margin: 10px 0;
+                    }
+                    .incident-info {
+                        background: #f9fafb;
+                        border-left: 4px solid #10b981;
+                        padding: 15px;
+                        margin: 20px 0;
+                        border-radius: 4px;
+                    }
+                    .incident-info strong {
+                        color: #1f2937;
+                    }
+                    .agent-info {
+                        background: #eff6ff;
+                        border-left: 4px solid #3b82f6;
+                        padding: 15px;
+                        margin: 20px 0;
+                        border-radius: 4px;
+                    }
+                    .footer {
+                        background: #f9fafb;
+                        padding: 20px;
+                        text-align: center;
+                        font-size: 13px;
+                        color: #6b7280;
+                        border-top: 1px solid #e5e7eb;
+                    }
+                    .icon {
+                        font-size: 48px;
+                        margin-bottom: 10px;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <div class="icon">✅</div>
+                        <h1>Mise à jour de votre incident</h1>
+                    </div>
+                    <div class="content">
+                        <p class="greeting">Bonjour <strong>%s</strong>,</p>
+                        <p>Nous avons une bonne nouvelle ! Votre incident a été %s.</p>
+                        
+                        <div class="incident-info">
+                            <p style="margin: 5px 0;"><strong>Incident #%d:</strong> %s</p>
+                            <p style="margin: 5px 0;"><strong>Nouveau statut:</strong> <span class="status-badge">%s</span></p>
+                        </div>
+                        
+                        %s
+                        
+                        <p style="margin-top: 20px;">
+                            Nous vous tiendrons informé de l'évolution de votre incident. 
+                            Merci de votre patience et de votre confiance.
+                        </p>
+                        
+                        <p style="margin-top: 30px;">
+                            Cordialement,<br>
+                            <strong>L'équipe Street Incidents</strong>
+                        </p>
+                    </div>
+                    <div class="footer">
+                        <p>Ceci est un message automatique. Merci de ne pas répondre à cet email.</p>
+                        <p style="margin-top: 10px;">© 2025 Street Incidents. Tous droits réservés.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """,
+                statusColor,
+                citizenName,
+                statusMessage,
+                incidentId,
+                title != null ? title : "Sans titre",
+                newStatus.replace("_", " "),
+                agentName != null ?
+                        String.format("<div class=\"agent-info\"><p style=\"margin: 5px 0;\">👤 <strong>Agent assigné:</strong> %s</p></div>", agentName)
+                        : ""
+        );
+    }
+
 }

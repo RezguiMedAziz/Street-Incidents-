@@ -41,6 +41,15 @@ public class AdminService {
     }
 
     /**
+     * Get users filtered by role as List (not paginated)
+     * ✅ NEW: For dropdown selections
+     */
+    public List<User> getUsersByRoleList(Role role) {
+        log.info("Fetching all users with role: {}", role);
+        return userRepository.findByRole(role);
+    }
+
+    /**
      * Get all users from the database (for non-paginated use)
      */
     public List<User> getAllUsers() {
