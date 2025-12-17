@@ -3,16 +3,15 @@ package Street.Incidents.Project.Street.Incidents.Project.entities;
 import Street.Incidents.Project.Street.Incidents.Project.entities.Enums.Departement;
 import Street.Incidents.Project.Street.Incidents.Project.entities.Enums.Priorite;
 import Street.Incidents.Project.Street.Incidents.Project.entities.Enums.StatutIncident;
-//import Street.Incidents.Project.Street.Incidents.Project.entities.converter.CryptoConverter;
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "incidents")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -22,51 +21,67 @@ public class Incident {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-
+    @Column(nullable = false)
     private String titre;
+
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private Departement categorie;
 
     @Enumerated(EnumType.STRING)
-    private StatutIncident statut;
-
-    private LocalDateTime dateCreation;
-    private LocalDateTime dateResolution;
-
-//    @Convert(converter = CryptoConverter.class)
-    private String latitude;
-
-//    @Convert(converter = CryptoConverter.class)
-    private String longitude;
-
+    @Column(nullable = false)
+    private StatutIncident statut = StatutIncident.SIGNALE;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Priorite priorite = Priorite.MOYENNE;
 
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime dateCreation = LocalDateTime.now();
 
-    @ManyToOne
+    @Column
+    private LocalDateTime dateResolution;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "declarant_id")
     private User declarant;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "agent_id")
     private User agent;
 
-    @ManyToOne(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "quartier_id")
     private Quartier quartier;
 
-    @OneToMany(mappedBy = "incident", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @Builder.Default
-    private List<Photo> photos = new ArrayList<>();
+    @Column
+    private Double latitude;
 
-    // Méthode utilitaire pour ajouter une photo
-    public void addPhoto(Photo photo) {
-        photos.add(photo);
-        photo.setIncident(this);
+    @Column
+    private Double longitude;
+
+    // ✅ NEW: Commentaire/Feedback du citoyen
+    @Column(name = "commentaire_citoyen", columnDefinition = "TEXT")
+    private String commentaireCitoyen;
+
+    @PrePersist
+    protected void onCreate() {
+        this.dateCreation = LocalDateTime.now();
+        if (this.statut == null) {
+            this.statut = StatutIncident.SIGNALE;
+        }
+        if (this.priorite == null) {
+            this.priorite = Priorite.MOYENNE;
+        }
     }
 
+    @PreUpdate
+    protected void onUpdate() {
+        if (this.statut == StatutIncident.RESOLU && this.dateResolution == null) {
+            this.dateResolution = LocalDateTime.now();
+        }
+    }
 }
