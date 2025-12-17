@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main}">
+<head>
+    <title>My Incidents - Citizen Dashboard</title>
+</head>
+
+<!-- ✅ Styles spécifiques à cette page -->
+<th:block layout:fragment="styles">
+    <style>
+        .page-header {
+            background: white;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #212529;
+            margin-bottom: 0.5rem;
+        }
+
+        .page-header p {
+            color: #6c757d;
+            margin: 0;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .stat-card h6 {
+            color: #6c757d;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card h2 {
+            color: #212529;
+            font-weight: bold;
+            margin: 0;
+            font-size: 2rem;
+        }
+
+        .filters-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .filters-card h5 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #212529;
+            margin-bottom: 1.5rem;
+        }
+
+        .table-container {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .table-container h5 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #212529;
+            margin-bottom: 1.5rem;
+        }
+
+        .table {
+            margin-bottom: 0;
+        }
+
+        .table thead th {
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #495057;
+        }
+
+        .table tbody tr {
+            transition: background-color 0.2s;
+        }
+
+        .table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .badge {
+            padding: 0.4rem 0.75rem;
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+
+        .btn-sm {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+        }
+
+        .modal-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .modal-title {
+            font-weight: 600;
+            color: #212529;
+        }
+
+        .pagination {
+            margin-top: 1.5rem;
+        }
+
+        .pagination-info {
+            text-align: center;
+            margin-top: 1rem;
+            color: #6c757d;
+            font-size: 0.875rem;
+        }
+    </style>
+</th:block>
+
+<body>
+<!-- ✅ Contenu principal -->
+<div layout:fragment="content">
+    <div class="container-fluid">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1>My Incidents</h1>
+            <p>Track the status of your reported incidents and provide feedback</p>
+        </div>
+
+        <!-- Success/Error Messages -->
+        <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            <span th:text="${success}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-md-2 mb-3">
+                <div class="stat-card">
+                    <h6>Total</h6>
+                    <h2 th:text="${totalIncidents}">0</h2>
+                </div>
+            </div>
+            <div class="col-md-2 mb-3">
+                <div class="stat-card">
+                    <h6>Signalé</h6>
+                    <h2 class="text-primary" th:text="${signaleIncidents}">0</h2>
+                </div>
+            </div>
+            <div class="col-md-2 mb-3">
+                <div class="stat-card">
+                    <h6>Pris en charge</h6>
+                    <h2 class="text-warning" th:text="${prisEnChargeIncidents}">0</h2>
+                </div>
+            </div>
+            <div class="col-md-2 mb-3">
+                <div class="stat-card">
+                    <h6>En résolution</h6>
+                    <h2 class="text-info" th:text="${enResolutionIncidents}">0</h2>
+                </div>
+            </div>
+            <div class="col-md-2 mb-3">
+                <div class="stat-card">
+                    <h6>Résolu</h6>
+                    <h2 class="text-success" th:text="${resoluIncidents}">0</h2>
+                </div>
+            </div>
+            <div class="col-md-2 mb-3">
+                <div class="stat-card">
+                    <h6>Clôturé</h6>
+                    <h2 class="text-secondary" th:text="${clotureIncidents}">0</h2>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-card">
+            <h5><i class="fas fa-filter me-2"></i>Filters</h5>
+            <form th:action="@{/citizen/incidents}" method="get">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Status</label>
+                        <select name="statut" class="form-select">
+                            <option value="">All Statuses</option>
+                            <option th:each="s : ${statuts}"
+                                    th:value="${s.name()}"
+                                    th:text="${s.name()}"
+                                    th:selected="${s.name() == selectedStatut}">
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Department</label>
+                        <select name="departement" class="form-select">
+                            <option value="">All Departments</option>
+                            <option th:each="d : ${departements}"
+                                    th:value="${d.name()}"
+                                    th:text="${d.name()}"
+                                    th:selected="${d.name() == selectedDepartement}">
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Gouvernorat</label>
+                        <select name="gouvernorat" class="form-select">
+                            <option value="">All Gouvernorats</option>
+                            <option th:each="g : ${gouvernorats}"
+                                    th:value="${g}"
+                                    th:text="${g}"
+                                    th:selected="${g == selectedGouvernorat}">
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Municipalité</label>
+                        <select name="municipalite" class="form-select">
+                            <option value="">All Municipalités</option>
+                            <option th:each="m : ${municipalites}"
+                                    th:value="${m}"
+                                    th:text="${m}"
+                                    th:selected="${m == selectedMunicipalite}">
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" name="startDate" class="form-control"
+                               th:value="${selectedStartDate}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">End Date</label>
+                        <input type="date" name="endDate" class="form-control"
+                               th:value="${selectedEndDate}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Items per Page</label>
+                        <select name="size" class="form-select">
+                            <option value="5" th:selected="${pageSize == 5}">5</option>
+                            <option value="10" th:selected="${pageSize == 10}">10</option>
+                            <option value="20" th:selected="${pageSize == 20}">20</option>
+                            <option value="50" th:selected="${pageSize == 50}">50</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-search me-2"></i>Apply
+                        </button>
+                        <a th:href="@{/citizen/incidents}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Reset
+                        </a>
+                    </div>
+                </div>
+                <input type="hidden" name="sortBy" th:value="${sortBy}">
+                <input type="hidden" name="sortDir" th:value="${sortDir}">
+            </form>
+        </div>
+
+        <!-- Incidents Table -->
+        <div class="table-container">
+            <h5><i class="fas fa-list me-2"></i>My Incidents</h5>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Title</th>
+                        <th>Department</th>
+                        <th>Status</th>
+                        <th>Priority</th>
+                        <th>Location</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="incident : ${incidents}">
+                        <td><strong th:text="'#' + ${incident.id}">#1</strong></td>
+                        <td th:text="${incident.titre}">Title</td>
+                        <td th:text="${incident.categorie}">Dept</td>
+                        <td>
+                                <span class="badge"
+                                      th:classappend="${incident.statut.name() == 'SIGNALE'} ? 'bg-primary' :
+                                                     (${incident.statut.name() == 'PRIS_EN_CHARGE'} ? 'bg-warning text-dark' :
+                                                     (${incident.statut.name() == 'EN_RESOLUTION'} ? 'bg-info' :
+                                                     (${incident.statut.name() == 'RESOLU'} ? 'bg-success' : 'bg-secondary')))"
+                                      th:text="${incident.statut}">
+                                    Status
+                                </span>
+                        </td>
+                        <td>
+                                <span class="badge"
+                                      th:classappend="${incident.priorite.name() == 'HAUTE'} ? 'bg-danger' :
+                                                     (${incident.priorite.name() == 'MOYENNE'} ? 'bg-warning text-dark' : 'bg-success')"
+                                      th:text="${incident.priorite}">
+                                    Priority
+                                </span>
+                        </td>
+                        <td>
+                                <span th:if="${incident.quartier != null}"
+                                      th:text="${incident.quartier.municipalite}">Location</span>
+                            <span th:if="${incident.quartier == null}" class="text-muted">N/A</span>
+                        </td>
+                        <td th:text="${#temporals.format(incident.dateCreation, 'dd/MM/yyyy HH:mm')}">Date</td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-success me-1"
+                                    data-bs-toggle="modal"
+                                    th:attr="data-bs-target='#feedbackModal' + ${incident.id}"
+                                    title="Add feedback">
+                                <i class="fas fa-comment"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-info"
+                                    data-bs-toggle="modal"
+                                    th:attr="data-bs-target='#detailsModal' + ${incident.id}"
+                                    title="View details">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </td>
+
+                        <!-- Feedback Modal -->
+                        <div class="modal fade" th:id="'feedbackModal' + ${incident.id}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">
+                                            <i class="fas fa-comment me-2"></i>
+                                            Add Feedback - Incident #<span th:text="${incident.id}">1</span>
+                                        </h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <form th:action="@{/citizen/add-feedback}" method="post">
+                                        <div class="modal-body">
+                                            <input type="hidden" name="incidentId" th:value="${incident.id}">
+                                            <div class="mb-3">
+                                                <label class="form-label">Your Feedback / Comment</label>
+                                                <textarea name="commentaire" class="form-control" rows="5"
+                                                          placeholder="Share your feedback about this incident resolution..."
+                                                          th:text="${incident.commentaireCitoyen}" required></textarea>
+                                                <div class="form-text">
+                                                    Your feedback helps us improve our incident response and resolution process.
+                                                </div>
+                                            </div>
+                                            <div class="alert alert-info mb-0">
+                                                <i class="fas fa-info-circle me-2"></i>
+                                                You can update your feedback at any time until the incident is closed.
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                Cancel
+                                            </button>
+                                            <button type="submit" class="btn btn-success">
+                                                <i class="fas fa-check me-2"></i>Save Feedback
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Details Modal -->
+                        <div class="modal fade" th:id="'detailsModal' + ${incident.id}" tabindex="-1">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            Incident Details #<span th:text="${incident.id}">1</span>
+                                        </h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <strong class="text-muted d-block mb-1">Title</strong>
+                                                <span th:text="${incident.titre}">Title</span>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <strong class="text-muted d-block mb-1">Department</strong>
+                                                <span th:text="${incident.categorie}">Dept</span>
+                                            </div>
+                                            <div class="col-md-12 mb-3">
+                                                <strong class="text-muted d-block mb-1">Description</strong>
+                                                <p th:text="${incident.description}">Description</p>
+                                            </div>
+                                            <div class="col-md-4 mb-3">
+                                                <strong class="text-muted d-block mb-1">Status</strong>
+                                                <span class="badge"
+                                                      th:classappend="${incident.statut.name() == 'SIGNALE'} ? 'bg-primary' :
+                                                                         (${incident.statut.name() == 'PRIS_EN_CHARGE'} ? 'bg-warning text-dark' :
+                                                                         (${incident.statut.name() == 'EN_RESOLUTION'} ? 'bg-info' :
+                                                                         (${incident.statut.name() == 'RESOLU'} ? 'bg-success' : 'bg-secondary')))"
+                                                      th:text="${incident.statut}">Status</span>
+                                            </div>
+                                            <div class="col-md-4 mb-3">
+                                                <strong class="text-muted d-block mb-1">Priority</strong>
+                                                <span class="badge"
+                                                      th:classappend="${incident.priorite.name() == 'HAUTE'} ? 'bg-danger' :
+                                                                         (${incident.priorite.name() == 'MOYENNE'} ? 'bg-warning text-dark' : 'bg-success')"
+                                                      th:text="${incident.priorite}">Priority</span>
+                                            </div>
+                                            <div class="col-md-4 mb-3" th:if="${incident.quartier != null}">
+                                                <strong class="text-muted d-block mb-1">Location</strong>
+                                                <span th:text="${incident.quartier.municipalite + ', ' + incident.quartier.gouvernorat}">Location</span>
+                                            </div>
+                                            <div class="col-md-6 mb-3" th:if="${incident.agent != null}">
+                                                <strong class="text-muted d-block mb-1">Assigned Agent</strong>
+                                                <span th:text="${incident.agent.prenom + ' ' + incident.agent.nom}">Agent</span>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <strong class="text-muted d-block mb-1">Date Created</strong>
+                                                <span th:text="${#temporals.format(incident.dateCreation, 'dd/MM/yyyy HH:mm')}">Date</span>
+                                            </div>
+                                            <div class="col-md-6 mb-3" th:if="${incident.dateResolution != null}">
+                                                <strong class="text-muted d-block mb-1">Date Resolved</strong>
+                                                <span th:text="${#temporals.format(incident.dateResolution, 'dd/MM/yyyy HH:mm')}">Date</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Feedback Section -->
+                                        <div th:if="${incident.commentaireCitoyen != null and !incident.commentaireCitoyen.isEmpty()}"
+                                             class="alert alert-warning mt-3">
+                                            <strong class="d-block mb-2">
+                                                <i class="fas fa-comment-dots me-2"></i>Your Feedback
+                                            </strong>
+                                            <em th:text="${incident.commentaireCitoyen}">Feedback text</em>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                            Close
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </tr>
+
+                    <tr th:if="${#lists.isEmpty(incidents)}">
+                        <td colspan="8" class="text-center py-5">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3 d-block"></i>
+                            <p class="text-muted mb-0">You haven't reported any incidents yet</p>
+                            <a th:href="@{/incidents/new}" class="btn btn-primary mt-3">
+                                <i class="fas fa-plus-circle me-2"></i>Report Your First Incident
+                            </a>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <nav th:if="${totalPages > 1}" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                        <a class="page-link"
+                           th:href="@{/citizen/incidents(page=${currentPage - 1}, size=${pageSize},
+                                     statut=${selectedStatut}, departement=${selectedDepartement},
+                                     gouvernorat=${selectedGouvernorat}, municipalite=${selectedMunicipalite},
+                                     startDate=${selectedStartDate}, endDate=${selectedEndDate},
+                                     sortBy=${sortBy}, sortDir=${sortDir})}">
+                            <i class="fas fa-chevron-left"></i> Previous
+                        </a>
+                    </li>
+
+                    <li class="page-item"
+                        th:each="pageNum : ${#numbers.sequence(0, totalPages - 1)}"
+                        th:classappend="${pageNum == currentPage} ? 'active'">
+                        <a class="page-link"
+                           th:text="${pageNum + 1}"
+                           th:href="@{/citizen/incidents(page=${pageNum}, size=${pageSize},
+                                     statut=${selectedStatut}, departement=${selectedDepartement},
+                                     gouvernorat=${selectedGouvernorat}, municipalite=${selectedMunicipalite},
+                                     startDate=${selectedStartDate}, endDate=${selectedEndDate},
+                                     sortBy=${sortBy}, sortDir=${sortDir})}">1</a>
+                    </li>
+
+                    <li class="page-item" th:classappend="${currentPage + 1 >= totalPages} ? 'disabled'">
+                        <a class="page-link"
+                           th:href="@{/citizen/incidents(page=${currentPage + 1}, size=${pageSize},
+                                     statut=${selectedStatut}, departement=${selectedDepartement},
+                                     gouvernorat=${selectedGouvernorat}, municipalite=${selectedMunicipalite},
+                                     startDate=${selectedStartDate}, endDate=${selectedEndDate},
+                                     sortBy=${sortBy}, sortDir=${sortDir})}">
+                            Next <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+                <div class="pagination-info">
+                    <span th:if="${totalPages > 1}">
+                        Page <strong th:text="${currentPage + 1}">1</strong> of
+                        <strong th:text="${totalPages}">1</strong>
+                        (<strong th:text="${totalElements}">0</strong> total incidents)
+                    </span>
+                    <span th:if="${totalPages == 1}">
+                        Showing all <strong th:text="${totalElements}">0</strong> incidents
+                    </span>
+                </div>
+            </nav>
+        </div>
+    </div>
+</div>
+</body>
+</html>

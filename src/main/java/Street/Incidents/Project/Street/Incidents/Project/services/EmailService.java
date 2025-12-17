@@ -276,7 +276,7 @@ public class EmailService {
     }
 
     // ========================================
-    // ✅ NEW: INCIDENT ASSIGNMENT NOTIFICATION
+    // ✅ INCIDENT ASSIGNMENT NOTIFICATION
     // ========================================
 
     /**
@@ -506,6 +506,11 @@ public class EmailService {
                 frontendUrl
         );
     }
+
+    // ========================================
+    // ✅ INCIDENT STATUS UPDATE NOTIFICATION
+    // ========================================
+
     /**
      * Send incident status update notification to citizen
      */
@@ -688,4 +693,191 @@ public class EmailService {
         );
     }
 
+    // ========================================
+    // ✅ NEW: INCIDENT CLOSURE NOTIFICATION
+    // ========================================
+
+    /**
+     * Send incident closure notification to citizen
+     */
+    @Async
+    public void sendIncidentClosureNotification(String citizenEmail, String citizenName,
+                                                Long incidentId, String incidentTitle) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setTo(citizenEmail);
+            helper.setSubject("Incident #" + incidentId + " - CLÔTURÉ - Street Incidents");
+
+            String htmlContent = buildIncidentClosureHtml(citizenName, incidentId, incidentTitle);
+
+            helper.setText(htmlContent, true);
+            helper.setFrom("noreply@streetincidents.com");
+
+            mailSender.send(message);
+            log.info("Incident closure notification sent successfully to citizen: {}", citizenEmail);
+
+        } catch (MessagingException e) {
+            log.error("Failed to send incident closure notification to {}: {}", citizenEmail, e.getMessage());
+            throw new RuntimeException("Failed to send incident closure email", e);
+        }
+    }
+
+    /**
+     * Build HTML content for incident closure email
+     */
+    private String buildIncidentClosureHtml(String citizenName, Long incidentId, String incidentTitle) {
+        return String.format("""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <style>
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                        line-height: 1.6;
+                        color: #333;
+                        background-color: #f3f4f6;
+                        margin: 0;
+                        padding: 0;
+                    }
+                    .container {
+                        max-width: 600px;
+                        margin: 30px auto;
+                        background: white;
+                        border-radius: 12px;
+                        overflow: hidden;
+                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    }
+                    .header {
+                        background: linear-gradient(135deg, #6b7280 0%%, #4b5563 100%%);
+                        color: white;
+                        padding: 30px 20px;
+                        text-align: center;
+                    }
+                    .header h1 {
+                        margin: 0;
+                        font-size: 24px;
+                        font-weight: 600;
+                    }
+                    .content {
+                        padding: 30px;
+                    }
+                    .greeting {
+                        font-size: 16px;
+                        margin-bottom: 20px;
+                    }
+                    .incident-card {
+                        background: #f9fafb;
+                        border-left: 4px solid #6b7280;
+                        padding: 20px;
+                        margin: 20px 0;
+                        border-radius: 8px;
+                    }
+                    .incident-card h2 {
+                        color: #1f2937;
+                        font-size: 18px;
+                        margin: 0 0 15px 0;
+                    }
+                    .incident-card p {
+                        margin: 8px 0;
+                    }
+                    .status-badge {
+                        display: inline-block;
+                        padding: 8px 16px;
+                        border-radius: 20px;
+                        font-size: 14px;
+                        font-weight: 600;
+                        color: white;
+                        background-color: #6b7280;
+                        margin: 10px 0;
+                    }
+                    .thank-you-box {
+                        background: #dbeafe;
+                        border-left: 4px solid #3b82f6;
+                        padding: 15px;
+                        margin: 20px 0;
+                        border-radius: 4px;
+                        font-size: 15px;
+                    }
+                    .btn {
+                        display: inline-block;
+                        padding: 12px 30px;
+                        background: #6b7280;
+                        color: white;
+                        text-decoration: none;
+                        border-radius: 6px;
+                        margin: 20px 0;
+                        font-weight: 600;
+                    }
+                    .btn:hover {
+                        background: #4b5563;
+                    }
+                    .footer {
+                        background: #f9fafb;
+                        padding: 20px;
+                        text-align: center;
+                        font-size: 13px;
+                        color: #6b7280;
+                        border-top: 1px solid #e5e7eb;
+                    }
+                    .icon {
+                        font-size: 48px;
+                        margin-bottom: 10px;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <div class="icon">🔒</div>
+                        <h1>Incident Clôturé</h1>
+                    </div>
+                    <div class="content">
+                        <p class="greeting">Bonjour <strong>%s</strong>,</p>
+                        <p>Nous vous informons que votre incident a été officiellement <strong>CLÔTURÉ</strong> par notre équipe administrative.</p>
+                        
+                        <div class="incident-card">
+                            <h2>Détails de l'incident</h2>
+                            <p><strong>ID :</strong> #%d</p>
+                            <p><strong>Titre :</strong> %s</p>
+                            <p><strong>Statut :</strong> <span class="status-badge">CLÔTURÉ</span></p>
+                        </div>
+                        
+                        <div class="thank-you-box">
+                            <p style="margin: 0;">
+                                <strong>🙏 Merci pour votre signalement !</strong><br>
+                                Votre contribution aide à améliorer les services de notre municipalité.
+                            </p>
+                        </div>
+                        
+                        <p style="margin-top: 20px;">
+                            Si vous rencontrez d'autres problèmes dans votre quartier, n'hésitez pas à signaler un nouvel incident.
+                        </p>
+                        
+                        <center>
+                            <a href="%s/citizen/incidents" class="btn">Voir mes incidents</a>
+                        </center>
+                        
+                        <p style="margin-top: 30px;">
+                            Cordialement,<br>
+                            <strong>L'équipe Street Incidents</strong>
+                        </p>
+                    </div>
+                    <div class="footer">
+                        <p>Ceci est un message automatique. Merci de ne pas répondre à cet email.</p>
+                        <p style="margin-top: 10px;">© 2025 Street Incidents. Tous droits réservés.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """,
+                citizenName,
+                incidentId,
+                incidentTitle != null ? incidentTitle : "Sans titre",
+                frontendUrl
+        );
+    }
 }

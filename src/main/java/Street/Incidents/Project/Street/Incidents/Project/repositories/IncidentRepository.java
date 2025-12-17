@@ -104,7 +104,7 @@ public interface IncidentRepository extends JpaRepository<Incident, Long>, JpaSp
                                    Pageable pageable);
 
     /**
-     * ✅ FIXED: Advanced multi-criteria search for incidents
+     * ✅ FIXED: Advanced multi-criteria search for incidents (ADMIN & AGENT)
      * Uses COALESCE and CAST to avoid PostgreSQL parameter type issues
      * All parameters are optional (nullable) - only non-null values are used as filters
      *
@@ -159,4 +159,73 @@ public interface IncidentRepository extends JpaRepository<Incident, Long>, JpaSp
             "WHERE i.quartier.municipalite IS NOT NULL " +
             "ORDER BY i.quartier.municipalite ASC")
     List<String> findAllDistinctMunicipalites();
+
+    // ========================================
+    // ✅ AGENT MUNICIPAL METHODS
+    // ========================================
+
+    /**
+     * Count incidents by agent and status
+     * @param agentId The ID of the agent
+     * @param status The status to count
+     * @return Number of incidents for the agent with the given status
+     */
+    long countByAgentIdAndStatut(Long agentId, StatutIncident status);
+
+    // ========================================
+    // ✅ CITIZEN (CITOYEN) METHODS
+    // ========================================
+
+    /**
+     * Find incidents by declarant (citizen) with pagination
+     * @param declarantId The ID of the citizen who reported the incident
+     * @param pageable Pagination information
+     * @return Page of incidents reported by the citizen
+     */
+    Page<Incident> findByDeclarantId(Long declarantId, Pageable pageable);
+
+    /**
+     * Count incidents by declarant and status
+     * @param declarantId The ID of the citizen
+     * @param status The status to count
+     * @return Number of incidents for the citizen with the given status
+     */
+    long countByDeclarantIdAndStatut(Long declarantId, StatutIncident status);
+
+    /**
+     * ✅ Advanced multi-criteria search for incidents by declarant (CITIZEN)
+     * Uses COALESCE and CAST to avoid PostgreSQL parameter type issues
+     * All parameters except declarantId are optional
+     *
+     * @param declarantId Filter by citizen who reported the incident (required)
+     * @param statut Filter by incident status (optional)
+     * @param categorie Filter by incident department (optional)
+     * @param gouvernorat Filter by gouvernorat (optional)
+     * @param municipalite Filter by municipalite (optional)
+     * @param startDate Filter by minimum creation date (optional)
+     * @param endDate Filter by maximum creation date (optional)
+     * @param pageable Pagination information
+     * @return Page of incidents matching all specified criteria
+     */
+    @Query("""
+        SELECT i FROM Incident i 
+        LEFT JOIN i.quartier q 
+        WHERE i.declarant.id = :declarantId
+        AND (:statut IS NULL OR i.statut = :statut) 
+        AND (:categorie IS NULL OR i.categorie = :categorie) 
+        AND (COALESCE(:gouvernorat, '') = '' OR q.gouvernorat = :gouvernorat) 
+        AND (COALESCE(:municipalite, '') = '' OR q.municipalite = :municipalite) 
+        AND (CAST(:startDate AS timestamp) IS NULL OR i.dateCreation >= :startDate) 
+        AND (CAST(:endDate AS timestamp) IS NULL OR i.dateCreation <= :endDate)
+        """)
+    Page<Incident> findByDeclarantAndMultipleFilters(
+            @Param("declarantId") Long declarantId,
+            @Param("statut") StatutIncident statut,
+            @Param("categorie") Departement categorie,
+            @Param("gouvernorat") String gouvernorat,
+            @Param("municipalite") String municipalite,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            Pageable pageable
+    );
 }

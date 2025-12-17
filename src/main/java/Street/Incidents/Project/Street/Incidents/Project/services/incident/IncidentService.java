@@ -212,6 +212,7 @@ public class IncidentService {
 
     /**
      * Update incident status with citizen notification
+     * ✅ UPDATED: Now handles special CLOTURE notification
      */
     @Transactional
     public Incident updateIncidentStatus(Long incidentId, StatutIncident newStatus) {
@@ -235,33 +236,52 @@ public class IncidentService {
         }
 
         Incident savedIncident = incidentRepo.save(incident);
-        log.info("Incident {} status updated to {}", incidentId, newStatus);
+        log.info("Incident {} status updated from {} to {}", incidentId, oldStatus, newStatus);
 
-        // ✅ Send status update notification to CITIZEN
+        // ✅ Send notifications to CITIZEN
         if (incident.getDeclarant() != null && incident.getDeclarant().getEmail() != null) {
+            User citizen = incident.getDeclarant();
+            String citizenName = buildFullName(citizen);
+            String agentName = incident.getAgent() != null ? buildFullName(incident.getAgent()) : null;
+
             try {
-                User citizen = incident.getDeclarant();
-                String citizenName = buildFullName(citizen);
+                // ✅ Special handling for CLOTURE status
+                if (newStatus == StatutIncident.CLOTURE) {
+                    log.info("Sending CLOSURE notification to citizen: {}", citizen.getEmail());
 
-                String agentName = incident.getAgent() != null ?
-                        buildFullName(incident.getAgent()) : null;
+                    emailService.sendIncidentClosureNotification(
+                            citizen.getEmail(),
+                            citizenName,
+                            incident.getId(),
+                            incident.getTitre()
+                    );
 
-                emailService.sendIncidentStatusUpdateToCitizen(
-                        citizen.getEmail(),
-                        citizenName,
-                        incident.getId(),
-                        incident.getTitre(),
-                        oldStatus != null ? oldStatus.name() : "SIGNALE",
-                        newStatus.name(),
-                        agentName
-                );
+                    log.info("Closure notification sent successfully to citizen: {}", citizen.getEmail());
+                } else {
+                    // ✅ Regular status update notification for other statuses
+                    log.info("Sending status update notification to citizen: {}", citizen.getEmail());
 
-                log.info("Status update notification sent to citizen: {}", citizen.getEmail());
+                    emailService.sendIncidentStatusUpdateToCitizen(
+                            citizen.getEmail(),
+                            citizenName,
+                            incident.getId(),
+                            incident.getTitre(),
+                            oldStatus != null ? oldStatus.name() : "SIGNALE",
+                            newStatus.name(),
+                            agentName
+                    );
+
+                    log.info("Status update notification sent successfully to citizen: {}", citizen.getEmail());
+                }
             } catch (Exception e) {
-                log.error("Failed to send status update to citizen {}: {}",
-                        incident.getDeclarant().getEmail(), e.getMessage());
+                log.error("Failed to send {} notification to citizen {}: {}",
+                        newStatus == StatutIncident.CLOTURE ? "CLOSURE" : "STATUS UPDATE",
+                        citizen.getEmail(),
+                        e.getMessage());
                 // Don't throw - status is still updated, just log the error
             }
+        } else {
+            log.warn("Cannot send notification for incident {}: citizen not found or email missing", incidentId);
         }
 
         return savedIncident;
@@ -340,6 +360,82 @@ public class IncidentService {
     public List<String> getAllMunicipalites() {
         log.info("Fetching all distinct municipalites");
         return incidentRepo.findAllDistinctMunicipalites();
+    }
+
+    // ========================================
+    // ✅ AGENT MUNICIPAL METHODS
+    // ========================================
+
+    /**
+     * Count incidents by agent and status
+     */
+    public long countIncidentsByAgentAndStatus(Long agentId, StatutIncident status) {
+        long count = incidentRepo.countByAgentIdAndStatut(agentId, status);
+        log.debug("Counted {} incidents for agent {} with status {}", count, agentId, status);
+        return count;
+    }
+
+    // ========================================
+    // ✅ CITIZEN (CITOYEN) METHODS
+    // ========================================
+
+    /**
+     * Get incidents by declarant (citizen)
+     */
+    public Page<Incident> getIncidentsByDeclarant(Long declarantId, Pageable pageable) {
+        Page<Incident> incidents = incidentRepo.findByDeclarantId(declarantId, pageable);
+        log.info("Found {} incidents for declarant {}", incidents.getTotalElements(), declarantId);
+        return incidents;
+    }
+
+    /**
+     * Filter incidents by declarant with multiple criteria
+     */
+    public Page<Incident> filterIncidentsByDeclarant(
+            Long declarantId,
+            StatutIncident statut,
+            Departement categorie,
+            String gouvernorat,
+            String municipalite,
+            LocalDateTime startDate,
+            LocalDateTime endDate,
+            Pageable pageable) {
+
+        log.info("Filtering incidents for declarant {} with criteria - Status: {}, Category: {}, " +
+                        "Gouvernorat: {}, Municipalite: {}, DateRange: {} to {}",
+                declarantId, statut, categorie, gouvernorat, municipalite, startDate, endDate);
+
+        Page<Incident> filteredIncidents = incidentRepo.findByDeclarantAndMultipleFilters(
+                declarantId, statut, categorie, gouvernorat, municipalite, startDate, endDate, pageable
+        );
+
+        log.info("Filtered incidents found for declarant {}: {}", declarantId, filteredIncidents.getTotalElements());
+        return filteredIncidents;
+    }
+
+    /**
+     * Count incidents by declarant and status
+     */
+    public long countIncidentsByDeclarantAndStatus(Long declarantId, StatutIncident status) {
+        long count = incidentRepo.countByDeclarantIdAndStatut(declarantId, status);
+        log.debug("Counted {} incidents for declarant {} with status {}", count, declarantId, status);
+        return count;
+    }
+
+    /**
+     * Update citizen feedback/comment
+     */
+    @Transactional
+    public void updateCitizenFeedback(Long incidentId, String commentaire) {
+        log.info("Updating feedback for incident {}", incidentId);
+
+        Incident incident = incidentRepo.findById(incidentId)
+                .orElseThrow(() -> new IllegalArgumentException("Incident not found with ID: " + incidentId));
+
+        incident.setCommentaireCitoyen(commentaire);
+        incidentRepo.save(incident);
+
+        log.info("Feedback updated successfully for incident {}", incidentId);
     }
 
     // ========================================
