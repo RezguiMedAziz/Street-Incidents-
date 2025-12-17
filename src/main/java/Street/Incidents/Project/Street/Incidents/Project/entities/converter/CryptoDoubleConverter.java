@@ -8,9 +8,9 @@
 //import java.util.Base64;
 //
 //@Converter
-//public class CryptoConverter implements AttributeConverter<String, String> {
+//public class CryptoDoubleConverter implements AttributeConverter<Double, String> {
 //
-//    private static final String SECRET = "maCleSecrete1234";
+//    private static final String SECRET = "maCleSecrete1234"; // clé AES 16 caractères
 //    private static final String ALGORITHM = "AES";
 //
 //    private SecretKeySpec getKey() {
@@ -18,12 +18,12 @@
 //    }
 //
 //    @Override
-//    public String convertToDatabaseColumn(String attribute) {
+//    public String convertToDatabaseColumn(Double attribute) {
 //        if (attribute == null) return null;
 //        try {
 //            Cipher cipher = Cipher.getInstance(ALGORITHM);
 //            cipher.init(Cipher.ENCRYPT_MODE, getKey());
-//            byte[] encrypted = cipher.doFinal(attribute.getBytes());
+//            byte[] encrypted = cipher.doFinal(attribute.toString().getBytes());
 //            return Base64.getEncoder().encodeToString(encrypted);
 //        } catch (Exception e) {
 //            throw new RuntimeException("Erreur chiffrement", e);
@@ -31,13 +31,14 @@
 //    }
 //
 //    @Override
-//    public String convertToEntityAttribute(String dbData) {
+//    public Double convertToEntityAttribute(String dbData) {
 //        if (dbData == null) return null;
 //        try {
 //            Cipher cipher = Cipher.getInstance(ALGORITHM);
 //            cipher.init(Cipher.DECRYPT_MODE, getKey());
 //            byte[] decoded = Base64.getDecoder().decode(dbData);
-//            return new String(cipher.doFinal(decoded));
+//            String decrypted = new String(cipher.doFinal(decoded));
+//            return Double.valueOf(decrypted);
 //        } catch (Exception e) {
 //            throw new RuntimeException("Erreur déchiffrement", e);
 //        }

@@ -3,6 +3,7 @@ package Street.Incidents.Project.Street.Incidents.Project.entities;
 import Street.Incidents.Project.Street.Incidents.Project.entities.Enums.Departement;
 import Street.Incidents.Project.Street.Incidents.Project.entities.Enums.Priorite;
 import Street.Incidents.Project.Street.Incidents.Project.entities.Enums.StatutIncident;
+//import Street.Incidents.Project.Street.Incidents.Project.entities.converter.CryptoDoubleConverter;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -61,10 +62,13 @@ public class Incident {
     private Quartier quartier;
 
     @Column
+//    @Convert(converter = CryptoDoubleConverter.class)
     private Double latitude;
 
     @Column
+//    @Convert(converter = CryptoDoubleConverter.class)
     private Double longitude;
+
 
     @Column(name = "commentaire_citoyen", columnDefinition = "TEXT")
     private String commentaireCitoyen;
