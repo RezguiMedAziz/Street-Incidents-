@@ -86,22 +86,8 @@ public class IncidentController {
             redirectAttributes.addFlashAttribute("alertMessage",
                     "Incident signalé avec succès ! Votre déclaration a été enregistrée.");
 
-            // ✅ Redirect based on user role
-            User user = utilisateurRepository.findByEmail(principal.getName()).orElse(null);
-            if (user != null) {
-                switch (user.getRole()) {
-                    case CITOYEN:
-                        return "redirect:/citizen/incidents";
-                    case AGENT_MUNICIPAL:
-                        return "redirect:/agent/incidents";
-                    case ADMINISTRATEUR:
-                        return "redirect:/admin/incidents";
-                    default:
-                        return "redirect:/";
-                }
-            }
-
-            return "redirect:/";
+            // ✅ REDIRECT TO /home AFTER CREATING INCIDENT
+            return "redirect:/home";
 
         } catch (Exception e) {
             e.printStackTrace();
