@@ -474,38 +474,40 @@ public class AdminController {
      */
     @PostMapping("/close-incident")
     public String closeIncident(
-            @RequestParam Long incidentId,
+            @RequestParam("incidentId") Long incidentId,
             RedirectAttributes redirectAttributes) {
 
-        log.info("Admin request to close incident {}", incidentId);
-
         try {
-            // Get incident details
-            Incident incident = incidentService.getIncidentById(incidentId)
-                    .orElseThrow(() -> new IllegalArgumentException("Incident not found"));
+            log.info("Admin request to close incident with ID: {}", incidentId);
 
-            // ✅ Verify incident is in RESOLU status
+            // 1️⃣ Verify incident exists and is RESOLU
+            Incident incident = incidentService.getIncidentById(incidentId)
+                    .orElseThrow(() -> new IllegalArgumentException("Incident not found with ID: " + incidentId));
+
+            // 2️⃣ Check current status
             if (incident.getStatut() != StatutIncident.RESOLU) {
-                log.warn("Cannot close incident {} - current status is {}", incidentId, incident.getStatut());
+                log.warn("Attempt to close incident {} with status {}", incidentId, incident.getStatut());
                 redirectAttributes.addFlashAttribute("error",
-                        "Only resolved incidents can be closed. Current status: " + incident.getStatut());
+                        "Only RESOLVED incidents can be closed. Current status: " + incident.getStatut());
                 return "redirect:/admin/incidents";
             }
 
-            // ✅ Update status to CLOTURE (this will trigger email notification)
+            // 3️⃣ Update status to CLOTURE (email sent automatically in service)
             incidentService.updateIncidentStatus(incidentId, StatutIncident.CLOTURE);
 
+            // 4️⃣ Success message
             redirectAttributes.addFlashAttribute("success",
-                    "Incident #" + incidentId + " has been successfully closed. Notification sent to citizen.");
+                    "Incident #" + incidentId + " has been successfully closed. Citizen has been notified by email.");
+
             log.info("Incident {} closed successfully by admin", incidentId);
 
         } catch (IllegalArgumentException e) {
-            redirectAttributes.addFlashAttribute("error", e.getMessage());
-            log.error("Failed to close incident {}: {}", incidentId, e.getMessage());
+            log.error("Incident not found: {}", incidentId);
+            redirectAttributes.addFlashAttribute("error", "Incident not found: " + e.getMessage());
         } catch (Exception e) {
+            log.error("Failed to close incident {}: {}", incidentId, e.getMessage(), e);
             redirectAttributes.addFlashAttribute("error",
-                    "An error occurred while closing the incident: " + e.getMessage());
-            log.error("Unexpected error while closing incident {}: {}", incidentId, e.getMessage(), e);
+                    "Failed to close incident: " + e.getMessage());
         }
 
         return "redirect:/admin/incidents";
