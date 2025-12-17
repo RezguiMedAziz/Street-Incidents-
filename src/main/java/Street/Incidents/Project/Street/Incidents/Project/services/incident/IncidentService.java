@@ -343,6 +343,82 @@ public class IncidentService {
     }
 
     // ========================================
+    // ✅ AGENT MUNICIPAL METHODS
+    // ========================================
+
+    /**
+     * Count incidents by agent and status
+     */
+    public long countIncidentsByAgentAndStatus(Long agentId, StatutIncident status) {
+        long count = incidentRepo.countByAgentIdAndStatut(agentId, status);
+        log.debug("Counted {} incidents for agent {} with status {}", count, agentId, status);
+        return count;
+    }
+
+    // ========================================
+    // ✅ CITIZEN (CITOYEN) METHODS
+    // ========================================
+
+    /**
+     * Get incidents by declarant (citizen)
+     */
+    public Page<Incident> getIncidentsByDeclarant(Long declarantId, Pageable pageable) {
+        Page<Incident> incidents = incidentRepo.findByDeclarantId(declarantId, pageable);
+        log.info("Found {} incidents for declarant {}", incidents.getTotalElements(), declarantId);
+        return incidents;
+    }
+
+    /**
+     * Filter incidents by declarant with multiple criteria
+     */
+    public Page<Incident> filterIncidentsByDeclarant(
+            Long declarantId,
+            StatutIncident statut,
+            Departement categorie,
+            String gouvernorat,
+            String municipalite,
+            LocalDateTime startDate,
+            LocalDateTime endDate,
+            Pageable pageable) {
+
+        log.info("Filtering incidents for declarant {} with criteria - Status: {}, Category: {}, " +
+                        "Gouvernorat: {}, Municipalite: {}, DateRange: {} to {}",
+                declarantId, statut, categorie, gouvernorat, municipalite, startDate, endDate);
+
+        Page<Incident> filteredIncidents = incidentRepo.findByDeclarantAndMultipleFilters(
+                declarantId, statut, categorie, gouvernorat, municipalite, startDate, endDate, pageable
+        );
+
+        log.info("Filtered incidents found for declarant {}: {}", declarantId, filteredIncidents.getTotalElements());
+        return filteredIncidents;
+    }
+
+    /**
+     * Count incidents by declarant and status
+     */
+    public long countIncidentsByDeclarantAndStatus(Long declarantId, StatutIncident status) {
+        long count = incidentRepo.countByDeclarantIdAndStatut(declarantId, status);
+        log.debug("Counted {} incidents for declarant {} with status {}", count, declarantId, status);
+        return count;
+    }
+
+    /**
+     * Update citizen feedback/comment
+     */
+    @Transactional
+    public void updateCitizenFeedback(Long incidentId, String commentaire) {
+        log.info("Updating feedback for incident {}", incidentId);
+
+        Incident incident = incidentRepo.findById(incidentId)
+                .orElseThrow(() -> new IllegalArgumentException("Incident not found with ID: " + incidentId));
+
+        incident.setCommentaireCitoyen(commentaire);
+        incidentRepo.save(incident);
+
+        log.info("Feedback updated successfully for incident {}", incidentId);
+    }
+
+    // ========================================
     // UTILITY METHODS
     // ========================================
 
@@ -412,13 +488,4 @@ public class IncidentService {
 
         return fullName.toString();
     }
-    /**
-     * Count incidents by agent and status
-     */
-    public long countIncidentsByAgentAndStatus(Long agentId, StatutIncident status) {
-        long count = incidentRepo.countByAgentIdAndStatut(agentId, status);
-        log.debug("Counted {} incidents for agent {} with status {}", count, agentId, status);
-        return count;
-    }
-
 }

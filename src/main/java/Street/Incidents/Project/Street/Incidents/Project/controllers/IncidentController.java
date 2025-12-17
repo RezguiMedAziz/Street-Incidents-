@@ -19,7 +19,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.security.Principal;
 
 @Controller
-@RequestMapping("/citizen/incidents")
+@RequestMapping("/incidents")  // ✅ CHANGÉ: /incidents au lieu de /citizen/incidents
 public class IncidentController {
 
     @Autowired
@@ -31,8 +31,8 @@ public class IncidentController {
     @Autowired
     private UserRepository utilisateurRepository;
 
-    // GET /citizen/incidents
-    @GetMapping
+    // ✅ GET /incidents/new (au lieu de /citizen/incidents)
+    @GetMapping("/new")
     public String showForm(Model model, Principal principal) {
         // Add user session attributes for sidebar
         addUserSessionAttributes(model, principal);
@@ -48,8 +48,8 @@ public class IncidentController {
         return "incident/incidents"; // Thymeleaf template
     }
 
-    // POST /citizen/incidents
-    @PostMapping
+    // ✅ POST /incidents/submit (au lieu de /citizen/incidents)
+    @PostMapping("/submit")
     public String saveIncident(
             @Valid @ModelAttribute Incident incident,
             BindingResult result,
@@ -86,8 +86,22 @@ public class IncidentController {
             redirectAttributes.addFlashAttribute("alertMessage",
                     "Incident signalé avec succès ! Votre déclaration a été enregistrée.");
 
-            // Redirect to home dashboard instead of /dashboard
-            return "redirect:/admin/home";
+            // ✅ Redirect based on user role
+            User user = utilisateurRepository.findByEmail(principal.getName()).orElse(null);
+            if (user != null) {
+                switch (user.getRole()) {
+                    case CITOYEN:
+                        return "redirect:/citizen/incidents";
+                    case AGENT_MUNICIPAL:
+                        return "redirect:/agent/incidents";
+                    case ADMINISTRATEUR:
+                        return "redirect:/admin/incidents";
+                    default:
+                        return "redirect:/";
+                }
+            }
+
+            return "redirect:/";
 
         } catch (Exception e) {
             e.printStackTrace();
