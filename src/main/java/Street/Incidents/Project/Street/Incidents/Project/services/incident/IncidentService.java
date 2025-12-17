@@ -212,6 +212,7 @@ public class IncidentService {
 
     /**
      * Update incident status with citizen notification
+     * ✅ UPDATED: Now handles special CLOTURE notification
      */
     @Transactional
     public Incident updateIncidentStatus(Long incidentId, StatutIncident newStatus) {
@@ -235,33 +236,52 @@ public class IncidentService {
         }
 
         Incident savedIncident = incidentRepo.save(incident);
-        log.info("Incident {} status updated to {}", incidentId, newStatus);
+        log.info("Incident {} status updated from {} to {}", incidentId, oldStatus, newStatus);
 
-        // ✅ Send status update notification to CITIZEN
+        // ✅ Send notifications to CITIZEN
         if (incident.getDeclarant() != null && incident.getDeclarant().getEmail() != null) {
+            User citizen = incident.getDeclarant();
+            String citizenName = buildFullName(citizen);
+            String agentName = incident.getAgent() != null ? buildFullName(incident.getAgent()) : null;
+
             try {
-                User citizen = incident.getDeclarant();
-                String citizenName = buildFullName(citizen);
+                // ✅ Special handling for CLOTURE status
+                if (newStatus == StatutIncident.CLOTURE) {
+                    log.info("Sending CLOSURE notification to citizen: {}", citizen.getEmail());
 
-                String agentName = incident.getAgent() != null ?
-                        buildFullName(incident.getAgent()) : null;
+                    emailService.sendIncidentClosureNotification(
+                            citizen.getEmail(),
+                            citizenName,
+                            incident.getId(),
+                            incident.getTitre()
+                    );
 
-                emailService.sendIncidentStatusUpdateToCitizen(
-                        citizen.getEmail(),
-                        citizenName,
-                        incident.getId(),
-                        incident.getTitre(),
-                        oldStatus != null ? oldStatus.name() : "SIGNALE",
-                        newStatus.name(),
-                        agentName
-                );
+                    log.info("Closure notification sent successfully to citizen: {}", citizen.getEmail());
+                } else {
+                    // ✅ Regular status update notification for other statuses
+                    log.info("Sending status update notification to citizen: {}", citizen.getEmail());
 
-                log.info("Status update notification sent to citizen: {}", citizen.getEmail());
+                    emailService.sendIncidentStatusUpdateToCitizen(
+                            citizen.getEmail(),
+                            citizenName,
+                            incident.getId(),
+                            incident.getTitre(),
+                            oldStatus != null ? oldStatus.name() : "SIGNALE",
+                            newStatus.name(),
+                            agentName
+                    );
+
+                    log.info("Status update notification sent successfully to citizen: {}", citizen.getEmail());
+                }
             } catch (Exception e) {
-                log.error("Failed to send status update to citizen {}: {}",
-                        incident.getDeclarant().getEmail(), e.getMessage());
+                log.error("Failed to send {} notification to citizen {}: {}",
+                        newStatus == StatutIncident.CLOTURE ? "CLOSURE" : "STATUS UPDATE",
+                        citizen.getEmail(),
+                        e.getMessage());
                 // Don't throw - status is still updated, just log the error
             }
+        } else {
+            log.warn("Cannot send notification for incident {}: citizen not found or email missing", incidentId);
         }
 
         return savedIncident;

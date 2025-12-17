@@ -383,7 +383,7 @@ public class AdminController {
         model.addAttribute("selectedStartDate", startDate);
         model.addAttribute("selectedEndDate", endDate);
 
-        // ✅✅✅ ADD FILTER OPTIONS FOR DROPDOWNS
+        // ✅ ADD FILTER OPTIONS FOR DROPDOWNS
         model.addAttribute("statuts", StatutIncident.values());
         model.addAttribute("departements", Departement.values());
         model.addAttribute("gouvernorats", incidentService.getAllGouvernorats());
@@ -458,6 +458,54 @@ public class AdminController {
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "An error occurred while updating the incident status.");
             log.error("Unexpected error while updating incident status: {}", e.getMessage(), e);
+        }
+
+        return "redirect:/admin/incidents";
+    }
+
+    // ========================================
+    // ✅ NEW: CLOSE INCIDENT AFTER READING CITIZEN FEEDBACK
+    // ========================================
+
+    /**
+     * Close incident (set status to CLOTURE)
+     * Only works for incidents with status RESOLU
+     * Should be called after admin reads citizen feedback
+     */
+    @PostMapping("/close-incident")
+    public String closeIncident(
+            @RequestParam Long incidentId,
+            RedirectAttributes redirectAttributes) {
+
+        log.info("Admin request to close incident {}", incidentId);
+
+        try {
+            // Get incident details
+            Incident incident = incidentService.getIncidentById(incidentId)
+                    .orElseThrow(() -> new IllegalArgumentException("Incident not found"));
+
+            // ✅ Verify incident is in RESOLU status
+            if (incident.getStatut() != StatutIncident.RESOLU) {
+                log.warn("Cannot close incident {} - current status is {}", incidentId, incident.getStatut());
+                redirectAttributes.addFlashAttribute("error",
+                        "Only resolved incidents can be closed. Current status: " + incident.getStatut());
+                return "redirect:/admin/incidents";
+            }
+
+            // ✅ Update status to CLOTURE (this will trigger email notification)
+            incidentService.updateIncidentStatus(incidentId, StatutIncident.CLOTURE);
+
+            redirectAttributes.addFlashAttribute("success",
+                    "Incident #" + incidentId + " has been successfully closed. Notification sent to citizen.");
+            log.info("Incident {} closed successfully by admin", incidentId);
+
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            log.error("Failed to close incident {}: {}", incidentId, e.getMessage());
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error",
+                    "An error occurred while closing the incident: " + e.getMessage());
+            log.error("Unexpected error while closing incident {}: {}", incidentId, e.getMessage(), e);
         }
 
         return "redirect:/admin/incidents";
