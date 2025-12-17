@@ -412,4 +412,13 @@ public class IncidentService {
 
         return fullName.toString();
     }
+    /**
+     * Count incidents by agent and status
+     */
+    public long countIncidentsByAgentAndStatus(Long agentId, StatutIncident status) {
+        long count = incidentRepo.countByAgentIdAndStatut(agentId, status);
+        log.debug("Counted {} incidents for agent {} with status {}", count, agentId, status);
+        return count;
+    }
+
 }

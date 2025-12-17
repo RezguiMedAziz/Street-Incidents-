@@ -159,4 +159,9 @@ public interface IncidentRepository extends JpaRepository<Incident, Long>, JpaSp
             "WHERE i.quartier.municipalite IS NOT NULL " +
             "ORDER BY i.quartier.municipalite ASC")
     List<String> findAllDistinctMunicipalites();
+    /**
+     * Count incidents by agent and status
+     */
+    long countByAgentIdAndStatut(Long agentId, StatutIncident status);
+
 }

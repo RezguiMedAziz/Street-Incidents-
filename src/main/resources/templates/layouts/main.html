@@ -137,7 +137,8 @@
 
         /* Hide menu items by default - JS will show them */
         .menu-admin,
-        .menu-citoyen {
+        .menu-citoyen,
+        .menu-agent {
             display: none;
         }
 
@@ -181,16 +182,25 @@
                     </a>
                 </li>
 
-                <!-- Incidents - only for CITOYEN -->
+                <!-- ✅ CITOYEN MENUS -->
                 <li class="menu-citoyen" id="menu-citoyen-incidents">
                     <a th:href="@{/citizen/incidents}"
                        th:classappend="${activePage == 'incidents'} ? 'active' : ''">
                         <i class="fas fa-exclamation-circle"></i>
-                        <span>Incidents</span>
+                        <span>My Incidents</span>
                     </a>
                 </li>
 
-                <!-- Manage Users - only for ADMINISTRATEUR -->
+                <!-- ✅ AGENT MUNICIPAL MENUS -->
+                <li class="menu-agent" id="menu-agent-incidents">
+                    <a th:href="@{/agent/incidents}"
+                       th:classappend="${activePage == 'incidents'} ? 'active' : ''">
+                        <i class="fas fa-tasks"></i>
+                        <span>Assigned Incidents</span>
+                    </a>
+                </li>
+
+                <!-- ✅ ADMINISTRATEUR MENUS -->
                 <li class="menu-admin" id="menu-users">
                     <a th:href="@{/admin/dashboard}"
                        th:classappend="${activePage == 'users'} ? 'active' : ''">
@@ -198,17 +208,15 @@
                         <span>Manage Users</span>
                     </a>
                 </li>
-                <!-- Incidents - only for ADMINISTRATEUR -->
-                <li class="menu-admin" id="menu-incidents">
+
+                <li class="menu-admin" id="menu-admin-incidents">
                     <a th:href="@{/admin/incidents}"
                        th:classappend="${activePage == 'incidents'} ? 'active' : ''">
-                        <i class="fas fa-exclamation-circle"></i>
-                        <span>Incidents</span>
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>All Incidents</span>
                     </a>
                 </li>
 
-
-                <!-- Notifications - only for ADMINISTRATEUR -->
                 <li class="menu-admin" id="menu-notifications">
                     <a th:href="@{/notifications}"
                        th:classappend="${activePage == 'notifications'} ? 'active' : ''">
@@ -257,9 +265,16 @@
 
         const adminMenus = document.querySelectorAll('.menu-admin');
         const citoyenMenus = document.querySelectorAll('.menu-citoyen');
+        const agentMenus = document.querySelectorAll('.menu-agent');
 
         console.log('Admin menus found:', adminMenus.length);
         console.log('Citoyen menus found:', citoyenMenus.length);
+        console.log('Agent menus found:', agentMenus.length);
+
+        // Hide all by default
+        adminMenus.forEach(menu => menu.style.display = 'none');
+        citoyenMenus.forEach(menu => menu.style.display = 'none');
+        agentMenus.forEach(menu => menu.style.display = 'none');
 
         // Show/hide menus based on role
         if (userRole === 'ADMINISTRATEUR') {
@@ -268,27 +283,20 @@
                 menu.style.display = 'block';
                 console.log('- Showed:', menu.id);
             });
-            citoyenMenus.forEach(menu => menu.style.display = 'none');
         } else if (userRole === 'CITOYEN') {
             console.log('Showing citoyen menus...');
             citoyenMenus.forEach(menu => {
                 menu.style.display = 'block';
                 console.log('- Showed:', menu.id);
             });
-            adminMenus.forEach(menu => menu.style.display = 'none');
         } else if (userRole === 'AGENT_MUNICIPAL') {
             console.log('Showing agent municipal menus...');
-            // Agents can see some admin menus
-            adminMenus.forEach(menu => {
-                if (menu.id === 'menu-notifications') {
-                    menu.style.display = 'block';
-                }
+            agentMenus.forEach(menu => {
+                menu.style.display = 'block';
+                console.log('- Showed:', menu.id);
             });
-            citoyenMenus.forEach(menu => menu.style.display = 'none');
         } else {
             console.warn('Unknown role:', userRole);
-            adminMenus.forEach(menu => menu.style.display = 'none');
-            citoyenMenus.forEach(menu => menu.style.display = 'none');
         }
 
         console.log('Menu rendering complete!');
