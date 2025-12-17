@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main}">
+<head>
+    <title>Admin Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        .dashboard-container {
+            max-width: 100%;
+            padding: 0;
+        }
+
+        .dashboard-header {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .dashboard-header h1 {
+            margin: 0;
+            font-size: 32px;
+            font-weight: 700;
+        }
+
+        .dashboard-header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 16px;
+        }
+
+        /* KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .kpi-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            border-left: 4px solid #3182ce;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .kpi-card .kpi-title {
+            font-size: 14px;
+            color: #718096;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+
+        .kpi-card .kpi-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+
+        .kpi-card .kpi-subtitle {
+            font-size: 13px;
+            color: #a0aec0;
+        }
+
+        .kpi-card.primary { border-left-color: #3182ce; }
+        .kpi-card.success { border-left-color: #48bb78; }
+        .kpi-card.warning { border-left-color: #ed8936; }
+        .kpi-card.info { border-left-color: #667eea; }
+
+        /* Charts Grid */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        .chart-card h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .chart-card.full-width {
+            grid-column: 1 / -1;
+        }
+
+        /* Stats Table */
+        .stats-table {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            margin-top: 30px;
+        }
+
+        .stats-table h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 20px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <h1>Tableau de Bord Administrateur</h1>
+            <p>Vue d'ensemble des incidents et statistiques globales</p>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+            <div class="kpi-card primary">
+                <div class="kpi-title">Total Incidents</div>
+                <div class="kpi-value" th:text="${totalIncidents}">0</div>
+                <div class="kpi-subtitle">Tous les incidents signalés</div>
+            </div>
+
+            <div class="kpi-card success">
+                <div class="kpi-title">Incidents Résolus</div>
+                <div class="kpi-value" th:text="${resolvedIncidents}">0</div>
+                <div class="kpi-subtitle">
+                    Taux: <span th:text="${resolutionRate} + '%'">0%</span>
+                </div>
+            </div>
+
+            <div class="kpi-card warning">
+                <div class="kpi-title">En Attente</div>
+                <div class="kpi-value" th:text="${pendingIncidents}">0</div>
+                <div class="kpi-subtitle">Signalés + En cours</div>
+            </div>
+
+            <div class="kpi-card info">
+                <div class="kpi-title">Délai Moyen</div>
+                <div class="kpi-value" th:text="${avgResolutionTime}">0</div>
+                <div class="kpi-subtitle">Heures de résolution</div>
+            </div>
+
+            <div class="kpi-card primary">
+                <div class="kpi-title">Agents Actifs</div>
+                <div class="kpi-value" th:text="${activeAgents}">0</div>
+                <div class="kpi-subtitle">Agents municipaux</div>
+            </div>
+
+            <div class="kpi-card success">
+                <div class="kpi-title">Citoyens</div>
+                <div class="kpi-value" th:text="${totalCitizens}">0</div>
+                <div class="kpi-subtitle">Utilisateurs enregistrés</div>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+            <!-- Incidents par Type -->
+            <div class="chart-card">
+                <h3><i class="fas fa-chart-pie"></i> Incidents par Type</h3>
+                <div class="chart-container">
+                    <canvas id="typeChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Incidents par Statut -->
+            <div class="chart-card">
+                <h3><i class="fas fa-chart-bar"></i> Incidents par Statut</h3>
+                <div class="chart-container">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Incidents par Priorité -->
+            <div class="chart-card">
+                <h3><i class="fas fa-exclamation-triangle"></i> Incidents par Priorité</h3>
+                <div class="chart-container">
+                    <canvas id="priorityChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Top 10 Quartiers -->
+            <div class="chart-card">
+                <h3><i class="fas fa-map-marked-alt"></i> Top 10 Quartiers</h3>
+                <div class="chart-container">
+                    <canvas id="quartierChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Évolution temporelle -->
+            <div class="chart-card full-width">
+                <h3><i class="fas fa-chart-line"></i> Évolution des Incidents (30 derniers jours)</h3>
+                <div class="chart-container" style="height: 350px;">
+                    <canvas id="timelineChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        // Données depuis Thymeleaf
+        const incidentTypeLabels = /*[[${incidentTypeLabels}]]*/ [];
+        const incidentTypeData = /*[[${incidentTypeData}]]*/ [];
+
+        const statusLabels = /*[[${statusLabels}]]*/ [];
+        const statusData = /*[[${statusData}]]*/ [];
+
+        const priorityLabels = /*[[${priorityLabels}]]*/ [];
+        const priorityData = /*[[${priorityData}]]*/ [];
+
+        const quartierLabels = /*[[${quartierLabels}]]*/ [];
+        const quartierData = /*[[${quartierData}]]*/ [];
+
+        const dateLabels = /*[[${dateLabels}]]*/ [];
+        const dateData = /*[[${dateData}]]*/ [];
+
+        // Couleurs
+        const colors = {
+            primary: '#3182ce',
+            success: '#48bb78',
+            warning: '#ed8936',
+            danger: '#f56565',
+            info: '#667eea',
+            purple: '#9f7aea',
+            pink: '#ed64a6',
+            teal: '#38b2ac'
+        };
+
+        const chartColors = [
+            colors.primary, colors.success, colors.warning,
+            colors.danger, colors.info, colors.purple,
+            colors.pink, colors.teal
+        ];
+
+        // Configuration commune
+        const commonOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        font: { size: 12 }
+                    }
+                }
+            }
+        };
+
+        // 1. Graphique par Type (Pie)
+        new Chart(document.getElementById('typeChart'), {
+            type: 'pie',
+            data: {
+                labels: incidentTypeLabels,
+                datasets: [{
+                    data: incidentTypeData,
+                    backgroundColor: chartColors,
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: commonOptions
+        });
+
+        // 2. Graphique par Statut (Doughnut)
+        new Chart(document.getElementById('statusChart'), {
+            type: 'doughnut',
+            data: {
+                labels: statusLabels,
+                datasets: [{
+                    data: statusData,
+                    backgroundColor: [colors.warning, colors.info, colors.success, colors.danger],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: commonOptions
+        });
+
+        // 3. Graphique par Priorité (Bar)
+        new Chart(document.getElementById('priorityChart'), {
+            type: 'bar',
+            data: {
+                labels: priorityLabels,
+                datasets: [{
+                    label: 'Nombre d\'incidents',
+                    data: priorityData,
+                    backgroundColor: [colors.success, colors.warning, colors.danger],
+                    borderWidth: 0,
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                ...commonOptions,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                }
+            }
+        });
+
+        // 4. Graphique Top Quartiers (Horizontal Bar)
+        new Chart(document.getElementById('quartierChart'), {
+            type: 'bar',
+            data: {
+                labels: quartierLabels,
+                datasets: [{
+                    label: 'Nombre d\'incidents',
+                    data: quartierData,
+                    backgroundColor: colors.primary,
+                    borderWidth: 0,
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                ...commonOptions,
+                indexAxis: 'y',
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                }
+            }
+        });
+
+        // 5. Graphique Évolution temporelle (Line)
+        new Chart(document.getElementById('timelineChart'), {
+            type: 'line',
+            data: {
+                labels: dateLabels,
+                datasets: [{
+                    label: 'Incidents signalés',
+                    data: dateData,
+                    borderColor: colors.primary,
+                    backgroundColor: colors.primary + '20',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: colors.primary,
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                ...commonOptions,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    },
+                    x: {
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                }
+            }
+        });
+        /*]]>*/
+    </script>
+</div>
+</body>
+</html>

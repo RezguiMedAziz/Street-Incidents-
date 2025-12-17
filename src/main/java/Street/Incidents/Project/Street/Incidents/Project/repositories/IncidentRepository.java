@@ -20,7 +20,44 @@ import java.util.List;
  */
 @Repository
 public interface IncidentRepository extends JpaRepository<Incident, Long>, JpaSpecificationExecutor<Incident> {
+    List<Incident> findByDeclarantId(Long declarantId);
+    List<Incident> findByAgentId(Long agentId);
+    List<Incident> findByStatut(StatutIncident statut);
+    List<Incident> findAllByAgentId(Long agentId);
+    List<Incident> findAllByAgentIdAndStatut(Long agentId, StatutIncident statut);
+    // === NOUVELLES QUERIES OPTIMISÉES POUR LE DASHBOARD ===
 
+    @Query("SELECT i.categorie, COUNT(i) FROM Incident i GROUP BY i.categorie")
+    List<Object[]> countGroupByCategorie();
+
+    @Query("SELECT i.statut, COUNT(i) FROM Incident i GROUP BY i.statut")
+    List<Object[]> countGroupByStatut();
+
+    @Query("SELECT i.priorite, COUNT(i) FROM Incident i GROUP BY i.priorite")
+    List<Object[]> countGroupByPriorite();
+
+    @Query("SELECT COALESCE(q.municipalite || ' - ' || q.gouvernorat, 'Quartier inconnu'), COUNT(i) " +
+            "FROM Incident i " +
+            "LEFT JOIN i.quartier q " +
+            "WHERE q IS NOT NULL " +
+            "GROUP BY q.municipalite, q.gouvernorat " +
+            "ORDER BY COUNT(i) DESC")
+    List<Object[]> countTop10QuartiersRaw();
+
+    @Query("SELECT DATE(i.dateCreation), COUNT(i) FROM Incident i " +
+            "WHERE i.dateCreation >= :startDate " +
+            "GROUP BY DATE(i.dateCreation) " +
+            "ORDER BY DATE(i.dateCreation)")
+    List<Object[]> countIncidentsLast30Days(@Param("startDate") LocalDateTime startDate);
+
+    @Query("SELECT COUNT(i) FROM Incident i WHERE i.statut = 'RESOLU'")
+    long countResolvedIncidents();
+
+    @Query("SELECT COUNT(i) FROM Incident i WHERE i.statut IN ('SIGNALE', 'PRIS_EN_CHARGE', 'EN_RESOLUTION')")
+    long countPendingIncidents();
+
+    @Query("SELECT COUNT(i) FROM Incident i")
+    long countTotalIncidents();
     // ========================================
     // BASIC QUERY METHODS
     // ========================================
@@ -228,4 +265,13 @@ public interface IncidentRepository extends JpaRepository<Incident, Long>, JpaSp
             @Param("endDate") LocalDateTime endDate,
             Pageable pageable
     );
+
+    // Count all incidents of a declarant
+    long countByDeclarantId(Long declarantId);
+
+    // Find recent incidents of a declarant
+    List<Incident> findRecentByDeclarantId(Long declarantId); // Optional: custom query or use Top5
+
+    // Find top 5 recent incidents
+    List<Incident> findTop5ByDeclarantIdOrderByDateCreationDesc(Long declarantId);
 }

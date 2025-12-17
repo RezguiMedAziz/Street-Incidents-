@@ -214,18 +214,21 @@
 
         <div class="sidebar-menu">
             <ul>
-                <!-- ✅ ADMINISTRATEUR - Dashboard -->
+
+
+                    <!-- ✅ ADMINISTRATEUR - Dashboard -->
                 <li class="menu-admin">
-                    <a th:href="@{/admin/home}"
+                    <a th:href="@{/admin/DashboardAdmin}"
                        th:classappend="${activePage == 'dashboard'} ? 'active' : ''">
                         <i class="fas fa-tachometer-alt"></i>
                         <span>Dashboard</span>
                     </a>
                 </li>
 
+
                 <!-- ✅ AGENT MUNICIPAL - Dashboard -->
                 <li class="menu-agent">
-                    <a th:href="@{/agent/home}"
+                    <a th:href="@{/agent/dashboard}"
                        th:classappend="${activePage == 'dashboard'} ? 'active' : ''">
                         <i class="fas fa-tachometer-alt"></i>
                         <span>Dashboard</span>
@@ -234,7 +237,7 @@
 
                 <!-- ✅ CITOYEN - Dashboard -->
                 <li class="menu-citoyen">
-                    <a th:href="@{/citizen/home}"
+                    <a th:href="@{/citizen/dashboard}"
                        th:classappend="${activePage == 'dashboard'} ? 'active' : ''">
                         <i class="fas fa-tachometer-alt"></i>
                         <span>Dashboard</span>

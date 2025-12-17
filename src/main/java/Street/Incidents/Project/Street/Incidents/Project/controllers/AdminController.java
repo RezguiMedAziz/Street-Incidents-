@@ -1,10 +1,12 @@
 package Street.Incidents.Project.Street.Incidents.Project.controllers;
-
+import java.util.ArrayList;
+import java.util.Map;
 import Street.Incidents.Project.Street.Incidents.Project.entities.Enums.Departement;
 import Street.Incidents.Project.Street.Incidents.Project.entities.Enums.Role;
 import Street.Incidents.Project.Street.Incidents.Project.entities.Enums.StatutIncident;
 import Street.Incidents.Project.Street.Incidents.Project.entities.Incident;
 import Street.Incidents.Project.Street.Incidents.Project.entities.User;
+import Street.Incidents.Project.Street.Incidents.Project.services.AdminDashboardService;
 import Street.Incidents.Project.Street.Incidents.Project.services.AdminService;
 import Street.Incidents.Project.Street.Incidents.Project.services.incident.IncidentService;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +33,7 @@ public class AdminController {
 
     private final AdminService adminService;
     private final IncidentService incidentService;
-
+    private final AdminDashboardService adminDashboardService;
     /**
      * Display the admin home page
      */
@@ -67,33 +69,71 @@ public class AdminController {
     /**
      * Display the admin dashboard with paginated and filtered users
      */
+    // ========================================
+// 1. STATISTICS DASHBOARD (KPI + Charts)
+// ========================================
+    @GetMapping("/DashboardAdmin")
+    public String showStatisticsDashboard(HttpSession session, Model model) {
+        log.info("Loading admin statistics dashboard");
+
+        // Session user info
+        String userRole = getUserRoleFromSession(session);
+        String userName = (String) session.getAttribute("userName");
+        String userEmail = (String) session.getAttribute("userEmail");
+
+        model.addAttribute("userRole", userRole);
+        model.addAttribute("userName", userName);
+        model.addAttribute("userEmail", userEmail);
+        model.addAttribute("activePage", "dashboard");
+        model.addAttribute("pageTitle", "Admin Dashboard - Statistics");
+
+        // DASHBOARD STATISTICS
+        try {
+            AdminDashboardService.DashboardStats stats = adminDashboardService.getDashboardStats();
+
+            // KPIs
+            model.addAttribute("totalIncidents", stats.getTotalIncidents());
+            model.addAttribute("resolvedIncidents", stats.getResolvedIncidents());
+            model.addAttribute("pendingIncidents", stats.getPendingIncidents());
+            model.addAttribute("avgResolutionTime", String.format("%.1f", stats.getAvgResolutionTime()));
+            model.addAttribute("resolutionRate", String.format("%.1f", stats.getResolutionRate()));
+            model.addAttribute("activeAgents", stats.getActiveAgents());
+            model.addAttribute("totalCitizens", stats.getTotalCitizens());
+
+            // Charts data
+            addChartDataToModel(model, "incidentType", stats.getIncidentsByType());
+            addChartDataToModel(model, "status", stats.getIncidentsByStatus());
+            addChartDataToModel(model, "priority", stats.getIncidentsByPriority());
+            addChartDataToModel(model, "quartier", stats.getTop10Quartiers());
+            addChartDataToModel(model, "date", stats.getIncidentsTrend());
+
+            log.info("Statistics dashboard loaded successfully: {} total incidents", stats.getTotalIncidents());
+        } catch (Exception e) {
+            log.error("Critical error loading dashboard statistics", e);
+            setDefaultChartValues(model);
+            model.addAttribute("error", "Impossible de charger les statistiques. Réessayez plus tard.");
+        }
+
+        return "admin/DashboardAdmin"; // This template now only shows stats & charts
+    }
+
+    // ========================================
+// 2. USER MANAGEMENT PAGE
+// ========================================
     @GetMapping("/dashboard")
-    public String showDashboard(
+    public String showUserManagement(
             HttpSession session,
             Model model,
             @RequestParam(value = "page", defaultValue = "0") int page,
-            @RequestParam(value = "size", defaultValue = "5") int size,
+            @RequestParam(value = "size", defaultValue = "10") int size, // Increased default size for usability
             @RequestParam(value = "roleFilter", required = false) String roleFilter,
             @RequestParam(value = "success", required = false) String success,
             @RequestParam(value = "error", required = false) String error) {
 
-        log.info("Loading admin dashboard - page: {}, size: {}, roleFilter: {}", page, size, roleFilter);
+        log.info("Loading user management page - page: {}, size: {}, roleFilter: {}", page, size, roleFilter);
 
-        // Session handling
-        Object roleObj = session.getAttribute("userRole");
-        String userRole = null;
-
-        if (roleObj instanceof Role) {
-            userRole = ((Role) roleObj).name();
-            log.debug("User role retrieved as enum: {}", userRole);
-        } else if (roleObj instanceof String) {
-            userRole = (String) roleObj;
-            log.debug("User role retrieved as string: {}", userRole);
-        } else {
-            log.warn("User role is null or unexpected type");
-            userRole = "GUEST";
-        }
-
+        // Session user info
+        String userRole = getUserRoleFromSession(session);
         String userName = (String) session.getAttribute("userName");
         String userEmail = (String) session.getAttribute("userEmail");
 
@@ -103,23 +143,20 @@ public class AdminController {
         model.addAttribute("activePage", "users");
         model.addAttribute("pageTitle", "Manage Users");
 
-        log.info("Dashboard loaded for user: {} ({})", userName, userRole);
-
-        // Fetch paginated users sorted by ID with optional role filter
-        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        // User pagination & filtering
+        Pageable userPageable = PageRequest.of(page, size, Sort.by("id").descending());
         Page<User> userPage;
 
         if (roleFilter != null && !roleFilter.isEmpty() && !roleFilter.equals("ALL")) {
             try {
                 Role role = Role.valueOf(roleFilter);
-                userPage = adminService.getUsersByRole(role, pageable);
-                log.info("Filtered users by role: {}", roleFilter);
+                userPage = adminService.getUsersByRole(role, userPageable);
             } catch (IllegalArgumentException e) {
                 log.warn("Invalid role filter: {}", roleFilter);
-                userPage = adminService.getUsersPage(pageable);
+                userPage = adminService.getUsersPage(userPageable);
             }
         } else {
-            userPage = adminService.getUsersPage(pageable);
+            userPage = adminService.getUsersPage(userPageable);
         }
 
         model.addAttribute("userPage", userPage);
@@ -129,20 +166,45 @@ public class AdminController {
         model.addAttribute("totalElements", userPage.getTotalElements());
         model.addAttribute("pageSize", size);
         model.addAttribute("roleFilter", roleFilter);
-
-        // Add all Role enum values for dropdowns
         model.addAttribute("allRoles", Role.values());
 
-        // Handle success and error messages
-        if (success != null) {
-            model.addAttribute("success", success);
-        }
-        if (error != null) {
-            model.addAttribute("error", error);
-        }
+        if (success != null) model.addAttribute("success", success);
+        if (error != null) model.addAttribute("error", error);
 
-        return "admin/dashboard";
+        log.info("User management page loaded for user: {} ({})", userName, userRole);
+        return "admin/dashboard"; // New dedicated template for user management
     }
+
+    // Helper method to avoid duplication
+    private String getUserRoleFromSession(HttpSession session) {
+        Object roleObj = session.getAttribute("userRole");
+        return roleObj instanceof Role ? ((Role) roleObj).name() :
+                roleObj instanceof String ? (String) roleObj : "GUEST";
+    }
+
+    // Helper to reduce repetition in chart data
+    private void addChartDataToModel(Model model, String prefix, Map<String, Long> dataMap) {
+        model.addAttribute(prefix + "Labels", new ArrayList<>(dataMap.keySet()));
+        model.addAttribute(prefix + "Data", new ArrayList<>(dataMap.values()));
+    }
+
+    // Default values in case of error
+    private void setDefaultChartValues(Model model) {
+        model.addAttribute("totalIncidents", 0L);
+        model.addAttribute("resolvedIncidents", 0L);
+        model.addAttribute("pendingIncidents", 0L);
+        model.addAttribute("avgResolutionTime", "0.0");
+        model.addAttribute("resolutionRate", "0.0");
+        model.addAttribute("activeAgents", 0L);
+        model.addAttribute("totalCitizens", 0L);
+
+        String[] chartTypes = {"incidentType", "status", "priority", "quartier", "date"};
+        for (String type : chartTypes) {
+            model.addAttribute(type + "Labels", new ArrayList<>());
+            model.addAttribute(type + "Data", new ArrayList<>());
+        }
+    }
+
 
     @PostMapping("/create-user")
     public String createUser(

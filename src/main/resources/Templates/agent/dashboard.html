@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main}">
+<head>
+    <title>Dashboard Agent - Street Incidents</title>
+    <style th:inline="css">
+        :root {
+            --primary-blue: #1e3a5f;
+            --secondary-blue: #2c5282;
+            --accent-blue: #3182ce;
+            --critical-red: #e53e3e;
+            --high-orange: #dd6b20;
+            --medium-yellow: #d69e2e;
+            --low-green: #38a169;
+            --gray-dark: #2d3748;
+            --gray-medium: #4a5568;
+            --gray-light: #e2e8f0;
+        }
+
+        .dashboard-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 400px;
+            height: 400px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+
+        .dashboard-header h2 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .dashboard-header p {
+            opacity: 0.95;
+            margin-bottom: 0;
+            position: relative;
+            font-size: 16px;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stats-card {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border-left: 5px solid;
+        }
+
+        .stats-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, transparent 0%, rgba(0, 0, 0, 0.03) 100%);
+            border-radius: 0 0 0 100%;
+        }
+
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .stats-card.total {
+            border-left-color: #667eea;
+        }
+
+        .stats-card.critical {
+            border-left-color: #e53e3e;
+        }
+
+        .stats-card.high {
+            border-left-color: #dd6b20;
+        }
+
+        .stats-card.medium {
+            border-left-color: #d69e2e;
+        }
+
+        .stats-card.low {
+            border-left-color: #38a169;
+        }
+
+        .stats-card.in-progress {
+            border-left-color: #4299e1;
+        }
+
+        .stats-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .stats-card.total .stats-icon {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .stats-card.critical .stats-icon {
+            background: linear-gradient(135deg, #fc6767 0%, #ec008c 100%);
+            color: white;
+        }
+
+        .stats-card.high .stats-icon {
+            background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+            color: white;
+        }
+
+        .stats-card.medium .stats-icon {
+            background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+            color: white;
+        }
+
+        .stats-card.low .stats-icon {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: white;
+        }
+
+        .stats-card.in-progress .stats-icon {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .stats-number {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--gray-dark);
+            margin-bottom: 8px;
+            position: relative;
+        }
+
+        .stats-label {
+            color: var(--gray-medium);
+            font-size: 14px;
+            font-weight: 500;
+            position: relative;
+        }
+
+        .section-card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--gray-dark);
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid var(--gray-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .filter-tab {
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: 2px solid var(--gray-light);
+            background: white;
+            color: var(--gray-medium);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .filter-tab:hover {
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+        }
+
+        .filter-tab.active {
+            background: linear-gradient(135deg, var(--accent-blue) 0%, var(--secondary-blue) 100%);
+            border-color: var(--accent-blue);
+            color: white;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: 12px;
+        }
+
+        .incidents-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 15px;
+        }
+
+        .incidents-table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .incidents-table thead th {
+            padding: 18px 15px;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        .incidents-table thead th:first-child {
+            border-top-left-radius: 12px;
+        }
+
+        .incidents-table thead th:last-child {
+            border-top-right-radius: 12px;
+        }
+
+        .incidents-table tbody tr {
+            transition: all 0.3s ease;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .incidents-table tbody tr:hover {
+            background-color: #f7fafc;
+            transform: scale(1.01);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .incidents-table tbody td {
+            padding: 18px 15px;
+            vertical-align: middle;
+        }
+
+        .status-badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            display: inline-block;
+        }
+
+        .status-badge.signale {
+            background: #fef5e7;
+            color: #d68910;
+            border: 1px solid #f9e79f;
+        }
+
+        .status-badge.pris-en-charge {
+            background: #ebf4ff;
+            color: #5a67d8;
+            border: 1px solid #c3dafe;
+        }
+
+        .status-badge.en-resolution {
+            background: #d5f4e6;
+            color: #1e8449;
+            border: 1px solid #9ae6b4;
+        }
+
+        .status-badge.resolu {
+            background: #ebf5fb;
+            color: #2e86c1;
+            border: 1px solid #bee3f8;
+        }
+
+        .priority-badge {
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .priority-badge.critique {
+            background: #fed7d7;
+            color: #c53030;
+            animation: pulse 2s infinite;
+        }
+
+        .priority-badge.elevee {
+            background: #feebc8;
+            color: #c05621;
+        }
+
+        .priority-badge.moyenne {
+            background: #fefcbf;
+            color: #d69e2e;
+        }
+
+        .priority-badge.basse {
+            background: #c6f6d5;
+            color: #2f855a;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .priority-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .priority-indicator.critique {
+            background: #c53030;
+        }
+
+        .priority-indicator.elevee {
+            background: #c05621;
+        }
+
+        .priority-indicator.moyenne {
+            background: #d69e2e;
+        }
+
+        .priority-indicator.basse {
+            background: #2f855a;
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.25);
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+            color: white;
+        }
+
+        .action-btn.secondary {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            box-shadow: 0 2px 8px rgba(72, 187, 120, 0.25);
+        }
+
+        .action-btn.secondary:hover {
+            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.35);
+        }
+
+        .incident-title-cell {
+            max-width: 250px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-weight: 600;
+            color: var(--gray-dark);
+        }
+
+        .category-badge {
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            background: #edf2f7;
+            color: var(--gray-dark);
+            text-transform: uppercase;
+        }
+
+        .date-cell {
+            color: var(--gray-medium);
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--gray-medium);
+        }
+
+        .empty-state i {
+            font-size: 80px;
+            color: var(--gray-light);
+            margin-bottom: 25px;
+            opacity: 0.5;
+        }
+
+        .empty-state h4 {
+            font-size: 22px;
+            color: var(--gray-dark);
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .empty-state p {
+            font-size: 15px;
+            margin-bottom: 0;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-header {
+                padding: 30px 25px;
+            }
+
+            .dashboard-header h2 {
+                font-size: 24px;
+            }
+
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .section-card {
+                padding: 20px;
+            }
+
+            .filter-tabs {
+                overflow-x: auto;
+                flex-wrap: nowrap;
+            }
+
+            .incidents-table {
+                font-size: 13px;
+            }
+
+            .incidents-table thead th,
+            .incidents-table tbody td {
+                padding: 12px 8px;
+            }
+
+            .incident-title-cell {
+                max-width: 150px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<div layout:fragment="content">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+        <h2>Dashboard Agent - <span th:text="${userName}">Agent</span> 🚀</h2>
+        <p>Gérez vos incidents assignés et suivez les priorités</p>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="stats-row">
+        <div class="stats-card total">
+            <div class="stats-icon">
+                <i class="fas fa-tasks"></i>
+            </div>
+            <div class="stats-number" th:text="${totalIncidents} ?: '0'">0</div>
+            <div class="stats-label">Total Assignés</div>
+        </div>
+
+        <div class="stats-card critical">
+            <div class="stats-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="stats-number" th:text="${criticalCount} ?: '0'">0</div>
+            <div class="stats-label">Critique</div>
+        </div>
+
+        <div class="stats-card high">
+            <div class="stats-icon">
+                <i class="fas fa-arrow-up"></i>
+            </div>
+            <div class="stats-number" th:text="${highCount} ?: '0'">0</div>
+            <div class="stats-label">Priorité Élevée</div>
+        </div>
+
+        <div class="stats-card medium">
+            <div class="stats-icon">
+                <i class="fas fa-minus"></i>
+            </div>
+            <div class="stats-number" th:text="${mediumCount} ?: '0'">0</div>
+            <div class="stats-label">Priorité Moyenne</div>
+        </div>
+
+        <div class="stats-card low">
+            <div class="stats-icon">
+                <i class="fas fa-arrow-down"></i>
+            </div>
+            <div class="stats-number" th:text="${lowCount} ?: '0'">0</div>
+            <div class="stats-label">Priorité Basse</div>
+        </div>
+
+        <div class="stats-card in-progress">
+            <div class="stats-icon">
+                <i class="fas fa-spinner"></i>
+            </div>
+            <div class="stats-number" th:text="${inProgressCount} ?: '0'">0</div>
+            <div class="stats-label">En Cours</div>
+        </div>
+    </div>
+
+    <!-- Incidents Table -->
+    <div class="section-card">
+        <div class="section-title">
+            <span><i class="fas fa-clipboard-list me-2"></i>Mes Incidents Assignés</span>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="filter-tabs">
+            <button class="filter-tab active" onclick="filterIncidents('all')">
+                <i class="fas fa-list"></i> Tous
+            </button>
+            <button class="filter-tab" onclick="filterIncidents('critique')">
+                <i class="fas fa-exclamation-triangle"></i> Critique
+            </button>
+            <button class="filter-tab" onclick="filterIncidents('elevee')">
+                <i class="fas fa-arrow-up"></i> Élevée
+            </button>
+            <button class="filter-tab" onclick="filterIncidents('moyenne')">
+                <i class="fas fa-minus"></i> Moyenne
+            </button>
+            <button class="filter-tab" onclick="filterIncidents('basse')">
+                <i class="fas fa-arrow-down"></i> Basse
+            </button>
+        </div>
+
+        <!-- If incidents exist -->
+        <div th:if="${incidents != null and !incidents.isEmpty()}">
+            <div class="table-responsive">
+                <table class="incidents-table">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Priorité</th>
+                        <th>Titre</th>
+                        <th>Catégorie</th>
+                        <th>Localisation</th>
+                        <th>Statut</th>
+                        <th>Date</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="incident : ${incidents}"
+                        th:attr="data-priority=${#strings.toLowerCase(incident.priorite.name())}">
+                        <td>
+                            <strong th:text="'#' + ${incident.id}">#001</strong>
+                        </td>
+                        <td>
+                            <span class="priority-badge"
+                                  th:classappend="${#strings.toLowerCase(incident.priorite.name())}"
+                                  th:text="${incident.priorite.label}">
+                                <span class="priority-indicator"
+                                      th:classappend="${#strings.toLowerCase(incident.priorite.name())}"></span>
+                                Moyenne
+                            </span>
+                        </td>
+                        <td>
+                            <div class="incident-title-cell"
+                                 th:text="${incident.titre}"
+                                 th:title="${incident.titre}">
+                                Titre de l'incident
+                            </div>
+                        </td>
+                        <td>
+                            <span class="category-badge" th:text="${incident.categorie}">Catégorie</span>
+                        </td>
+                        <td>
+                            <span class="date-cell"
+                                  th:text="${incident.quartier != null ? incident.quartier.municipalite : 'Non défini'}">
+                                Localisation
+                            </span>
+                        </td>
+                        <td>
+                            <span class="status-badge"
+                                  th:classappend="${#strings.toLowerCase(incident.statut.name()).replace('_', '-')}"
+                                  th:text="${incident.statut.name() == 'SIGNALE'} ? 'Signalé' :
+                                           (${incident.statut.name() == 'PRIS_EN_CHARGE'} ? 'Pris en Charge' :
+                                           (${incident.statut.name() == 'EN_RESOLUTION'} ? 'En Résolution' :
+                                           (${incident.statut.name() == 'RESOLU'} ? 'Résolu' : 'Clôturé')))">
+                                Signalé
+                            </span>
+                        </td>
+                        <td>
+                            <span class="date-cell"
+                                  th:text="${#temporals.format(incident.dateCreation, 'dd/MM/yyyy')}">
+                                01/01/2024
+                            </span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+
+        <!-- Empty state -->
+        <div th:if="${incidents == null or incidents.isEmpty()}">
+            <div class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <h4>Aucun Incident Assigné</h4>
+                <p>Vous n'avez pas d'incidents assignés pour le moment.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function filterIncidents(priority) {
+            // Update active tab
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.closest('.filter-tab').classList.add('active');
+
+            // Filter table rows
+            const rows = document.querySelectorAll('.incidents-table tbody tr');
+            rows.forEach(row => {
+                if (priority === 'all') {
+                    row.style.display = '';
+                } else {
+                    const rowPriority = row.getAttribute('data-priority');
+                    row.style.display = rowPriority === priority ? '' : 'none';
+                }
+            });
+        }
+    </script>
+</div>
+</body>
+</html>
