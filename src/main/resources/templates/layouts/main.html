@@ -214,6 +214,25 @@
 
         <div class="sidebar-menu">
             <ul>
+                <!-- Dashboard - visible to all but different URLs -->
+                <li class="menu-citoyen" id="menu-citoyen-dashboard">
+                    <a th:href="@{/citizen/dashboard}"
+                       th:classappend="${activePage == 'dashboard'} ? 'active' : ''">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+
+                <li class="menu-agent" id="menu-agent-dashboard">
+                    <a th:href="@{/agent/dashboard}"
+                       th:classappend="${activePage == 'dashboard'} ? 'active' : ''">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+
+                <li class="menu-admin" id="menu-admin-dashboard">
+                    <a th:href="@{/admin/dashboard}"
                 <!-- ✅ ADMINISTRATEUR - Dashboard -->
                 <li class="menu-admin">
                     <a th:href="@{/admin/home}"
@@ -246,6 +265,31 @@
                     <a th:href="@{/citizen/incidents}"
                        th:classappend="${activePage == 'incidents'} ? 'active' : ''">
                         <i class="fas fa-exclamation-circle"></i>
+                        <span>Mes Incidents</span>
+                    </a>
+                </li>
+
+                <!-- Incidents Assignés - only for AGENT -->
+                <li class="menu-agent" id="menu-agent-incidents">
+                    <a th:href="@{/agent/incidents}"
+                       th:classappend="${activePage == 'incidents'} ? 'active' : ''">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span>Incidents Assignés</span>
+                    </a>
+                </li>
+
+                <!-- Statistiques - only for AGENT -->
+                <li class="menu-agent" id="menu-agent-stats">
+                    <a th:href="@{/agent/statistics}"
+                       th:classappend="${activePage == 'statistics'} ? 'active' : ''">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Statistiques</span>
+                    </a>
+                </li>
+
+                <!-- Manage Users - only for ADMINISTRATEUR -->
+                <li class="menu-admin" id="menu-users">
+                    <a th:href="@{/admin/users}"
                         <span>My Incidents</span>
                     </a>
                 </li>
@@ -277,6 +321,11 @@
                     </a>
                 </li>
 
+                <!-- All Incidents - only for ADMINISTRATEUR -->
+                <li class="menu-admin" id="menu-admin-incidents">
+                    <a th:href="@{/admin/incidents}"
+                       th:classappend="${activePage == 'all-incidents'} ? 'active' : ''">
+                        <i class="fas fa-list"></i>
                 <!-- ✅ ADMINISTRATEUR - All Incidents -->
                 <li class="menu-admin">
                     <a th:href="@{/admin/incidents}"
@@ -286,6 +335,12 @@
                     </a>
                 </li>
 
+                <!-- Notifications - for ADMIN and AGENT -->
+                <li class="menu-admin menu-agent" id="menu-notifications">
+                    <a th:href="@{/notifications}"
+                       th:classappend="${activePage == 'notifications'} ? 'active' : ''">
+                        <i class="fas fa-bell"></i>
+                        <span>Notifications</span>
                 <!-- ========================================
                      COMMON MENU ITEMS (ALL ROLES)
                 ======================================== -->
@@ -362,6 +417,12 @@
         const citoyenMenus = document.querySelectorAll('.menu-citoyen');
         const agentMenus = document.querySelectorAll('.menu-agent');
 
+        console.log('Admin menus found:', adminMenus.length);
+        console.log('Citoyen menus found:', citoyenMenus.length);
+        console.log('Agent menus found:', agentMenus.length);
+
+        // Hide all menus first
+
         console.log('📋 Menu items found:');
         console.log('   - Admin menus:', adminMenus.length);
         console.log('   - Citoyen menus:', citoyenMenus.length);
@@ -372,6 +433,7 @@
         citoyenMenus.forEach(menu => menu.style.display = 'none');
         agentMenus.forEach(menu => menu.style.display = 'none');
 
+        // Show menus based on role
         // ✅ Show menus based on user role
         if (userRole === 'ADMINISTRATEUR') {
             console.log('✅ Showing ADMIN menus...');
@@ -385,6 +447,14 @@
             citoyenMenus.forEach(menu => {
                 menu.style.display = 'block';
             });
+        } else if (userRole === 'AGENT_MUNICIPAL') {
+            console.log('Showing agent municipal menus...');
+            agentMenus.forEach(menu => {
+                menu.style.display = 'block';
+                console.log('- Showed:', menu.id);
+            });
+        } else {
+            console.warn('Unknown role:', userRole);
             console.log('   ✓ Citoyen menus displayed');
 
         } else if (userRole === 'AGENT_MUNICIPAL') {

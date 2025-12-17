@@ -1,10 +1,12 @@
 package Street.Incidents.Project.Street.Incidents.Project.controllers;
-
+import java.util.ArrayList;
+import java.util.Map;
 import Street.Incidents.Project.Street.Incidents.Project.entities.Enums.Departement;
 import Street.Incidents.Project.Street.Incidents.Project.entities.Enums.Role;
 import Street.Incidents.Project.Street.Incidents.Project.entities.Enums.StatutIncident;
 import Street.Incidents.Project.Street.Incidents.Project.entities.Incident;
 import Street.Incidents.Project.Street.Incidents.Project.entities.User;
+import Street.Incidents.Project.Street.Incidents.Project.services.AdminDashboardService;
 import Street.Incidents.Project.Street.Incidents.Project.services.AdminService;
 import Street.Incidents.Project.Street.Incidents.Project.services.incident.IncidentService;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +33,7 @@ public class AdminController {
 
     private final AdminService adminService;
     private final IncidentService incidentService;
-
+    private final AdminDashboardService adminDashboardService;
     /**
      * Display the admin home page
      */
@@ -79,20 +81,12 @@ public class AdminController {
 
         log.info("Loading admin dashboard - page: {}, size: {}, roleFilter: {}", page, size, roleFilter);
 
-        // Session handling
+        // ==========================
+        // Session user info
+        // ==========================
         Object roleObj = session.getAttribute("userRole");
-        String userRole = null;
-
-        if (roleObj instanceof Role) {
-            userRole = ((Role) roleObj).name();
-            log.debug("User role retrieved as enum: {}", userRole);
-        } else if (roleObj instanceof String) {
-            userRole = (String) roleObj;
-            log.debug("User role retrieved as string: {}", userRole);
-        } else {
-            log.warn("User role is null or unexpected type");
-            userRole = "GUEST";
-        }
+        String userRole = roleObj instanceof Role ? ((Role) roleObj).name() :
+                roleObj instanceof String ? (String) roleObj : "GUEST";
 
         String userName = (String) session.getAttribute("userName");
         String userEmail = (String) session.getAttribute("userEmail");
@@ -100,26 +94,25 @@ public class AdminController {
         model.addAttribute("userRole", userRole);
         model.addAttribute("userName", userName);
         model.addAttribute("userEmail", userEmail);
-        model.addAttribute("activePage", "users");
-        model.addAttribute("pageTitle", "Manage Users");
+        model.addAttribute("activePage", "dashboard");
+        model.addAttribute("pageTitle", "Admin Dashboard");
 
-        log.info("Dashboard loaded for user: {} ({})", userName, userRole);
-
-        // Fetch paginated users sorted by ID with optional role filter
-        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        // ==========================
+        // User pagination & filtering
+        // ==========================
+        Pageable userPageable = PageRequest.of(page, size, Sort.by("id").descending());
         Page<User> userPage;
 
         if (roleFilter != null && !roleFilter.isEmpty() && !roleFilter.equals("ALL")) {
             try {
                 Role role = Role.valueOf(roleFilter);
-                userPage = adminService.getUsersByRole(role, pageable);
-                log.info("Filtered users by role: {}", roleFilter);
+                userPage = adminService.getUsersByRole(role, userPageable);
             } catch (IllegalArgumentException e) {
                 log.warn("Invalid role filter: {}", roleFilter);
-                userPage = adminService.getUsersPage(pageable);
+                userPage = adminService.getUsersPage(userPageable);
             }
         } else {
-            userPage = adminService.getUsersPage(pageable);
+            userPage = adminService.getUsersPage(userPageable);
         }
 
         model.addAttribute("userPage", userPage);
@@ -129,20 +122,83 @@ public class AdminController {
         model.addAttribute("totalElements", userPage.getTotalElements());
         model.addAttribute("pageSize", size);
         model.addAttribute("roleFilter", roleFilter);
-
-        // Add all Role enum values for dropdowns
         model.addAttribute("allRoles", Role.values());
 
-        // Handle success and error messages
-        if (success != null) {
-            model.addAttribute("success", success);
+        if (success != null) model.addAttribute("success", success);
+        if (error != null) model.addAttribute("error", error);
+
+        // ==========================
+        // DASHBOARD STATISTICS
+        // ==========================
+        try {
+            AdminDashboardService.DashboardStats stats = adminDashboardService.getDashboardStats();
+
+            // KPIs
+            model.addAttribute("totalIncidents", stats.getTotalIncidents());
+            model.addAttribute("resolvedIncidents", stats.getResolvedIncidents());
+            model.addAttribute("pendingIncidents", stats.getPendingIncidents());
+            model.addAttribute("avgResolutionTime", String.format("%.1f", stats.getAvgResolutionTime()));
+            model.addAttribute("resolutionRate", String.format("%.1f", stats.getResolutionRate()));
+            model.addAttribute("activeAgents", stats.getActiveAgents());
+            model.addAttribute("totalCitizens", stats.getTotalCitizens());
+
+            // Graphique par Type (Categorie = Departement)
+            Map<String, Long> typeMap = stats.getIncidentsByType();
+            model.addAttribute("incidentTypeLabels", new ArrayList<>(typeMap.keySet()));
+            model.addAttribute("incidentTypeData", new ArrayList<>(typeMap.values()));
+
+            // Graphique par Statut
+            Map<String, Long> statusMap = stats.getIncidentsByStatus();
+            model.addAttribute("statusLabels", new ArrayList<>(statusMap.keySet()));
+            model.addAttribute("statusData", new ArrayList<>(statusMap.values()));
+
+            // Graphique par Priorité
+            Map<String, Long> priorityMap = stats.getIncidentsByPriority();
+            model.addAttribute("priorityLabels", new ArrayList<>(priorityMap.keySet()));
+            model.addAttribute("priorityData", new ArrayList<>(priorityMap.values()));
+
+            // Top 10 Quartiers
+            Map<String, Long> quartierMap = stats.getTop10Quartiers();
+            model.addAttribute("quartierLabels", new ArrayList<>(quartierMap.keySet()));
+            model.addAttribute("quartierData", new ArrayList<>(quartierMap.values()));
+
+            // Évolution temporelle (30 derniers jours)
+            Map<String, Long> trendMap = stats.getIncidentsTrend();
+            model.addAttribute("dateLabels", new ArrayList<>(trendMap.keySet()));
+            model.addAttribute("dateData", new ArrayList<>(trendMap.values()));
+
+            log.info("Dashboard statistics loaded successfully: {} incidents total", stats.getTotalIncidents());
+
+        } catch (Exception e) {
+            log.error("Erreur critique lors du chargement des statistiques dashboard", e);
+
+            // Valeurs par défaut en cas d'erreur (pour éviter des charts cassés)
+            model.addAttribute("totalIncidents", 0L);
+            model.addAttribute("resolvedIncidents", 0L);
+            model.addAttribute("pendingIncidents", 0L);
+            model.addAttribute("avgResolutionTime", "0.0");
+            model.addAttribute("resolutionRate", "0.0");
+            model.addAttribute("activeAgents", 0L);
+            model.addAttribute("totalCitizens", 0L);
+
+            model.addAttribute("incidentTypeLabels", new ArrayList<>());
+            model.addAttribute("incidentTypeData", new ArrayList<>());
+            model.addAttribute("statusLabels", new ArrayList<>());
+            model.addAttribute("statusData", new ArrayList<>());
+            model.addAttribute("priorityLabels", new ArrayList<>());
+            model.addAttribute("priorityData", new ArrayList<>());
+            model.addAttribute("quartierLabels", new ArrayList<>());
+            model.addAttribute("quartierData", new ArrayList<>());
+            model.addAttribute("dateLabels", new ArrayList<>());
+            model.addAttribute("dateData", new ArrayList<>());
+
+            model.addAttribute("error", "Impossible de charger les statistiques. Réessayez plus tard.");
         }
-        if (error != null) {
-            model.addAttribute("error", error);
-        }
+        log.info("Admin dashboard loaded for user: {} ({})", userName, userRole);
 
         return "admin/dashboard";
     }
+
 
     @PostMapping("/create-user")
     public String createUser(
@@ -512,4 +568,5 @@ public class AdminController {
 
         return "redirect:/admin/incidents";
     }
+}
 }

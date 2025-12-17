@@ -3,6 +3,7 @@ package Street.Incidents.Project.Street.Incidents.Project.entities;
 import Street.Incidents.Project.Street.Incidents.Project.entities.Enums.Departement;
 import Street.Incidents.Project.Street.Incidents.Project.entities.Enums.Priorite;
 import Street.Incidents.Project.Street.Incidents.Project.entities.Enums.StatutIncident;
+//import Street.Incidents.Project.Street.Incidents.Project.entities.converter.CryptoDoubleConverter;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -33,13 +34,16 @@ public class Incident {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default // Ajouter @Builder.Default pour les initialisations
     private StatutIncident statut = StatutIncident.SIGNALE;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default // Ajouter @Builder.Default pour les initialisations
     private Priorite priorite = Priorite.MOYENNE;
 
     @Column(nullable = false, updatable = false)
+    @Builder.Default // Ajouter @Builder.Default pour les initialisations
     private LocalDateTime dateCreation = LocalDateTime.now();
 
     @Column
@@ -58,6 +62,15 @@ public class Incident {
     private Quartier quartier;
 
     @Column
+//    @Convert(converter = CryptoDoubleConverter.class)
+    private Double latitude;
+
+    @Column
+//    @Convert(converter = CryptoDoubleConverter.class)
+    private Double longitude;
+
+
+
     private Double latitude;
 
     @Column
@@ -69,6 +82,9 @@ public class Incident {
 
     @PrePersist
     protected void onCreate() {
+        if (this.dateCreation == null) {
+            this.dateCreation = LocalDateTime.now();
+        }
         this.dateCreation = LocalDateTime.now();
         if (this.statut == null) {
             this.statut = StatutIncident.SIGNALE;
@@ -84,4 +100,5 @@ public class Incident {
             this.dateResolution = LocalDateTime.now();
         }
     }
+}
 }

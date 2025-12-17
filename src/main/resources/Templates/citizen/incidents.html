@@ -3,6 +3,332 @@
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layouts/main}">
 <head>
+    <title>Incidents - Street Incidents</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        :root {
+            --primary-blue: #1e3a5f;
+            --secondary-blue: #2c5282;
+            --accent-blue: #3182ce;
+            --gray-dark: #2d3748;
+            --gray-medium: #4a5568;
+            --gray-light: #e2e8f0;
+            --sidebar-width: 260px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f7fafc;
+        }
+
+        /* Form Card Styles */
+        .form-card {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            border: 1px solid var(--gray-light);
+        }
+
+        .form-header {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--gray-light);
+        }
+
+        .form-header h2 {
+            color: var(--primary-blue);
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        /* Form Input Styles */
+        form label {
+            display: block;
+            color: var(--gray-dark);
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            margin-top: 20px;
+        }
+
+        form label:first-of-type {
+            margin-top: 0;
+        }
+
+        form input[type="text"],
+        form input[type="number"],
+        form textarea,
+        form select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--gray-light);
+            border-radius: 10px;
+            font-size: 15px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: all 0.3s ease;
+            background-color: white;
+            color: var(--gray-dark);
+        }
+
+        form input[type="text"]:focus,
+        form input[type="number"]:focus,
+        form textarea:focus,
+        form select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+        }
+
+        form textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        form input[type="file"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px dashed var(--gray-light);
+            border-radius: 10px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background-color: #f7fafc;
+        }
+
+        form input[type="file"]:hover {
+            border-color: var(--accent-blue);
+            background-color: rgba(49, 130, 206, 0.05);
+        }
+
+        /* Map Styles */
+        #map {
+            height: 400px;
+            margin-bottom: 10px;
+            width: 100%;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid var(--gray-light);
+        }
+
+        /* Submit Button Styles */
+        button[type="submit"] {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--accent-blue) 0%, var(--secondary-blue) 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 30px;
+            box-shadow: 0 4px 12px rgba(49, 130, 206, 0.3);
+        }
+
+        button[type="submit"]:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(49, 130, 206, 0.4);
+        }
+
+        button[type="submit"]:active {
+            transform: translateY(0);
+        }
+
+        /* Placeholder Styles */
+        ::placeholder {
+            color: #a0aec0;
+            opacity: 1;
+        }
+
+        /* Alert Styles */
+        .alert {
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert strong {
+            margin-right: 5px;
+        }
+
+        .text-muted {
+            color: #6b7280;
+            font-size: 13px;
+            margin-top: 5px;
+            display: block;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .form-card {
+                padding: 25px;
+            }
+
+            .form-header h2 {
+                font-size: 24px;
+            }
+
+            #map {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="container-fluid">
+        <div class="form-card">
+            <div th:replace="~{fragments/alerts :: alert}"></div>
+
+            <div class="form-header">
+                <h2><i class="fas fa-plus-circle me-2"></i>Déclarer un incident</h2>
+            </div>
+
+            <form th:action="@{/citizen/incidents}" method="post" enctype="multipart/form-data">
+
+                <label for="titre">Titre</label>
+                <input type="text" id="titre" name="titre" placeholder="Entrez le titre" required>
+
+                <label for="description">Description</label>
+                <textarea id="description" name="description" placeholder="Décrivez l'incident"></textarea>
+
+                <label for="priorite">Priorité</label>
+                <select id="priorite" name="priorite" class="form-select" required>
+                    <option value="" disabled selected>Sélectionnez une priorité</option>
+                    <option th:each="p : ${priorites}"
+                            th:value="${p.name()}"
+                            th:text="${p.label}">
+                    </option>
+                </select>
+
+                <label for="categorie">Catégorie</label>
+                <select id="categorie" name="categorie" class="form-select" required>
+                    <option value="" disabled selected>Sélectionnez une catégorie</option>
+                    <option th:each="c : ${categories}"
+                            th:value="${c.name()}"
+                            th:text="${c.label}">
+                    </option>
+                </select>
+
+                <label for="gouvernoratId">Gouvernorat</label>
+                <input type="text" id="gouvernoratId" name="gouvernorat">
+
+                <label for="municipaliteId">Municipalité</label>
+                <input type="text" id="municipaliteId" name="municipalite">
+
+                <label>Localisation sur la carte</label>
+                <div id="map"></div>
+
+                <label for="latitude">Latitude</label>
+                <input type="number" id="latitude" step="any" name="latitude" placeholder="ex: 36.8065">
+
+                <label for="longitude">Longitude</label>
+                <input type="number" id="longitude" step="any" name="longitude" placeholder="ex: 10.1815">
+
+                <label for="photosFiles">Photos (optionnel)</label>
+                <input type="file"
+                       id="photosFiles"
+                       name="photosFiles"
+                       class="form-control"
+                       multiple
+                       accept="image/*">
+                <small class="text-muted">Vous pouvez sélectionner plusieurs photos</small>
+
+                <button type="submit">
+                    <i class="fas fa-paper-plane me-2"></i>Envoyer
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Custom JS -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Inputs
+            const gouvernoratInput = document.getElementById('gouvernoratId');
+            const municipaliteInput = document.getElementById('municipaliteId');
+
+            // Coordonnées par défaut (Tunis)
+            const defaultLat = 36.8065;
+            const defaultLng = 10.1815;
+
+            // Initialisation de la carte
+            const map = L.map('map').setView([defaultLat, defaultLng], 13);
+
+            // OpenStreetMap
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Marker draggable
+            const marker = L.marker([defaultLat, defaultLng], {draggable: true}).addTo(map);
+
+            // Fonction pour mettre à jour les inputs
+            function updateLocation(lat, lng) {
+                document.getElementById('latitude').value = lat.toFixed(6);
+                document.getElementById('longitude').value = lng.toFixed(6);
+
+                // Reverse geocoding avec Nominatim
+                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, {
+                    headers: {
+                        'User-Agent': 'StreetIncidentsApp - student project'
+                    }
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        const address = data.address || {};
+
+                        gouvernoratInput.value = address.state || '';
+                        municipaliteInput.value = address.suburb || address.county || '';
+                    })
+                    .catch(err => console.error('Erreur geocoding: ', err));
+            }
+
+            // Event marker drag
+            marker.on('dragend', function (e) {
+                const pos = marker.getLatLng();
+                updateLocation(pos.lat, pos.lng);
+            });
+
+            // Event map click
+            map.on('click', function (e) {
+                marker.setLatLng(e.latlng);
+                updateLocation(e.latlng.lat, e.latlng.lng);
+            });
+
+            // Initial update avec position par défaut
+            updateLocation(defaultLat, defaultLng);
+        });
+    </script>
+</div>
+</body>
+</html>
     <title>My Incidents - Citizen Dashboard</title>
 </head>
 
