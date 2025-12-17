@@ -30,13 +30,17 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                // Protection CSRF activée
+        http// Protection CSRF activée
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                        // Désactiver CSRF pour les routes d'export (optionnel, mais recommandé pour les téléchargements)
-                        .ignoringRequestMatchers("/citizen/export/**")
+                        .ignoringRequestMatchers(
+                                "/citizen/export/**",
+                                "/api/auth/**",      // 👈 ADD THIS
+                                "/login-page",
+                                "/register-page"
+                        )
                 )
+
                 .authorizeHttpRequests(auth -> auth
                         // Public web pages and routes
                         // ========================

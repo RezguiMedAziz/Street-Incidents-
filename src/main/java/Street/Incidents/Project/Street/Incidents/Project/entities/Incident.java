@@ -3,7 +3,6 @@ package Street.Incidents.Project.Street.Incidents.Project.entities;
 import Street.Incidents.Project.Street.Incidents.Project.entities.Enums.Departement;
 import Street.Incidents.Project.Street.Incidents.Project.entities.Enums.Priorite;
 import Street.Incidents.Project.Street.Incidents.Project.entities.Enums.StatutIncident;
-//import Street.Incidents.Project.Street.Incidents.Project.entities.converter.CryptoDoubleConverter;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -62,21 +61,11 @@ public class Incident {
     private Quartier quartier;
 
     @Column
-//    @Convert(converter = CryptoDoubleConverter.class)
-    private Double latitude;
-
-    @Column
-//    @Convert(converter = CryptoDoubleConverter.class)
-    private Double longitude;
-
-
-
     private Double latitude;
 
     @Column
     private Double longitude;
 
-    // ✅ NEW: Commentaire/Feedback du citoyen
     @Column(name = "commentaire_citoyen", columnDefinition = "TEXT")
     private String commentaireCitoyen;
 
@@ -85,7 +74,6 @@ public class Incident {
         if (this.dateCreation == null) {
             this.dateCreation = LocalDateTime.now();
         }
-        this.dateCreation = LocalDateTime.now();
         if (this.statut == null) {
             this.statut = StatutIncident.SIGNALE;
         }
@@ -100,5 +88,4 @@ public class Incident {
             this.dateResolution = LocalDateTime.now();
         }
     }
-}
 }

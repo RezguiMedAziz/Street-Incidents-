@@ -1,4 +1,5 @@
 package Street.Incidents.Project.Street.Incidents.Project.controllers;
+
 import java.util.ArrayList;
 import java.util.Map;
 import Street.Incidents.Project.Street.Incidents.Project.entities.Enums.Departement;
@@ -34,13 +35,15 @@ public class AdminController {
     private final AdminService adminService;
     private final IncidentService incidentService;
     private final AdminDashboardService adminDashboardService;
-    /**
-     * Display the admin home page
-     */
-    @GetMapping("/home")
-    public String adminHome(HttpSession session, Model model) {
-        log.info("Loading admin home page");
 
+    /**
+     * Display the admin DASHBOARD (statistics page)
+     */
+    @GetMapping("/dashboard")
+    public String adminDashboard(HttpSession session, Model model) {
+        log.info("Loading admin dashboard (statistics)");
+
+        // Session user info
         Object roleObj = session.getAttribute("userRole");
         String userRole = null;
 
@@ -60,72 +63,6 @@ public class AdminController {
         model.addAttribute("userEmail", userEmail);
         model.addAttribute("activePage", "dashboard");
         model.addAttribute("pageTitle", "Admin Dashboard");
-
-        log.info("Admin home loaded for user: {} ({})", userName, userRole);
-
-        return "admin/home";
-    }
-
-    /**
-     * Display the admin dashboard with paginated and filtered users
-     */
-    @GetMapping("/dashboard")
-    public String showDashboard(
-            HttpSession session,
-            Model model,
-            @RequestParam(value = "page", defaultValue = "0") int page,
-            @RequestParam(value = "size", defaultValue = "5") int size,
-            @RequestParam(value = "roleFilter", required = false) String roleFilter,
-            @RequestParam(value = "success", required = false) String success,
-            @RequestParam(value = "error", required = false) String error) {
-
-        log.info("Loading admin dashboard - page: {}, size: {}, roleFilter: {}", page, size, roleFilter);
-
-        // ==========================
-        // Session user info
-        // ==========================
-        Object roleObj = session.getAttribute("userRole");
-        String userRole = roleObj instanceof Role ? ((Role) roleObj).name() :
-                roleObj instanceof String ? (String) roleObj : "GUEST";
-
-        String userName = (String) session.getAttribute("userName");
-        String userEmail = (String) session.getAttribute("userEmail");
-
-        model.addAttribute("userRole", userRole);
-        model.addAttribute("userName", userName);
-        model.addAttribute("userEmail", userEmail);
-        model.addAttribute("activePage", "dashboard");
-        model.addAttribute("pageTitle", "Admin Dashboard");
-
-        // ==========================
-        // User pagination & filtering
-        // ==========================
-        Pageable userPageable = PageRequest.of(page, size, Sort.by("id").descending());
-        Page<User> userPage;
-
-        if (roleFilter != null && !roleFilter.isEmpty() && !roleFilter.equals("ALL")) {
-            try {
-                Role role = Role.valueOf(roleFilter);
-                userPage = adminService.getUsersByRole(role, userPageable);
-            } catch (IllegalArgumentException e) {
-                log.warn("Invalid role filter: {}", roleFilter);
-                userPage = adminService.getUsersPage(userPageable);
-            }
-        } else {
-            userPage = adminService.getUsersPage(userPageable);
-        }
-
-        model.addAttribute("userPage", userPage);
-        model.addAttribute("users", userPage.getContent());
-        model.addAttribute("currentPage", page);
-        model.addAttribute("totalPages", userPage.getTotalPages());
-        model.addAttribute("totalElements", userPage.getTotalElements());
-        model.addAttribute("pageSize", size);
-        model.addAttribute("roleFilter", roleFilter);
-        model.addAttribute("allRoles", Role.values());
-
-        if (success != null) model.addAttribute("success", success);
-        if (error != null) model.addAttribute("error", error);
 
         // ==========================
         // DASHBOARD STATISTICS
@@ -172,7 +109,7 @@ public class AdminController {
         } catch (Exception e) {
             log.error("Erreur critique lors du chargement des statistiques dashboard", e);
 
-            // Valeurs par défaut en cas d'erreur (pour éviter des charts cassés)
+            // Valeurs par défaut en cas d'erreur
             model.addAttribute("totalIncidents", 0L);
             model.addAttribute("resolvedIncidents", 0L);
             model.addAttribute("pendingIncidents", 0L);
@@ -194,11 +131,72 @@ public class AdminController {
 
             model.addAttribute("error", "Impossible de charger les statistiques. Réessayez plus tard.");
         }
-        log.info("Admin dashboard loaded for user: {} ({})", userName, userRole);
+        log.info("Admin dashboard (statistics) loaded for user: {} ({})", userName, userRole);
 
         return "admin/dashboard";
     }
 
+    /**
+     * Display the USER MANAGEMENT page (dashboardadmin)
+     */
+    @GetMapping("/dashboardadmin")
+    public String userManagementDashboard(
+            HttpSession session,
+            Model model,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "5") int size,
+            @RequestParam(value = "roleFilter", required = false) String roleFilter,
+            @RequestParam(value = "success", required = false) String success,
+            @RequestParam(value = "error", required = false) String error) {
+
+        log.info("Loading user management dashboard - page: {}, size: {}, roleFilter: {}", page, size, roleFilter);
+
+        // Session user info
+        Object roleObj = session.getAttribute("userRole");
+        String userRole = roleObj instanceof Role ? ((Role) roleObj).name() :
+                roleObj instanceof String ? (String) roleObj : "GUEST";
+
+        String userName = (String) session.getAttribute("userName");
+        String userEmail = (String) session.getAttribute("userEmail");
+
+        model.addAttribute("userRole", userRole);
+        model.addAttribute("userName", userName);
+        model.addAttribute("userEmail", userEmail);
+        model.addAttribute("activePage", "dashboardadmin");
+        model.addAttribute("pageTitle", "User Management");
+
+        // User pagination & filtering
+        Pageable userPageable = PageRequest.of(page, size, Sort.by("id").descending());
+        Page<User> userPage;
+
+        if (roleFilter != null && !roleFilter.isEmpty() && !roleFilter.equals("ALL")) {
+            try {
+                Role role = Role.valueOf(roleFilter);
+                userPage = adminService.getUsersByRole(role, userPageable);
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid role filter: {}", roleFilter);
+                userPage = adminService.getUsersPage(userPageable);
+            }
+        } else {
+            userPage = adminService.getUsersPage(userPageable);
+        }
+
+        model.addAttribute("userPage", userPage);
+        model.addAttribute("users", userPage.getContent());
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", userPage.getTotalPages());
+        model.addAttribute("totalElements", userPage.getTotalElements());
+        model.addAttribute("pageSize", size);
+        model.addAttribute("roleFilter", roleFilter);
+        model.addAttribute("allRoles", Role.values());
+
+        if (success != null) model.addAttribute("success", success);
+        if (error != null) model.addAttribute("error", error);
+
+        log.info("User management dashboard loaded for user: {} ({})", userName, userRole);
+
+        return "admin/dashboardadmin";
+    }
 
     @PostMapping("/create-user")
     public String createUser(
@@ -225,7 +223,7 @@ public class AdminController {
             log.error("Unexpected error while creating user: {}", e.getMessage(), e);
         }
 
-        return "redirect:/admin/dashboard";
+        return "redirect:/admin/dashboardadmin";  // ✅ Redirect to user management page
     }
 
     @PostMapping("/update-user")
@@ -261,7 +259,7 @@ public class AdminController {
             log.error("Unexpected error while updating user: {}", e.getMessage(), e);
         }
 
-        return "redirect:/admin/dashboard";
+        return "redirect:/admin/dashboardadmin";  // ✅ Redirect to user management page
     }
 
     @PostMapping("/change-role")
@@ -308,7 +306,7 @@ public class AdminController {
             log.error("Unexpected error while changing user role: {}", e.getMessage(), e);
         }
 
-        return "redirect:/admin/dashboard";
+        return "redirect:/admin/dashboardadmin";  // ✅ Redirect to user management page
     }
 
     @PostMapping("/delete-user")
@@ -330,9 +328,8 @@ public class AdminController {
             log.error("Unexpected error while deleting user: {}", e.getMessage(), e);
         }
 
-        return "redirect:/admin/dashboard";
+        return "redirect:/admin/dashboardadmin";  // ✅ Redirect to user management page
     }
-
     // ========================================
     // ✅ INCIDENT MANAGEMENT WITH ADVANCED FILTERS
     // ========================================
@@ -568,5 +565,4 @@ public class AdminController {
 
         return "redirect:/admin/incidents";
     }
-}
 }
