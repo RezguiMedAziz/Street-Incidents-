@@ -58,9 +58,7 @@ public class RapportService {
         addTableRow(infoTable, "Priorite:", incident.getPriorite().getLabel(), headerFont, normalFont);
         addTableRow(infoTable, "Statut:", formatStatut(incident.getStatut().name()), headerFont, normalFont);
 
-        String localisation = incident.getQuartier() != null ?
-                incident.getQuartier().getMunicipalite() : "Non definie";
-        addTableRow(infoTable, "Localisation:", localisation, headerFont, normalFont);
+
 
         if (incident.getLatitude() != null && incident.getLongitude() != null) {
             addTableRow(infoTable, "Coordonnees:",
